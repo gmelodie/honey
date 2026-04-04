@@ -40,7 +40,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT count(*) AS connections FROM sessions WHERE $__timeFilter(starttime)",
+          "rawSql": "SELECT count(DISTINCT session) AS connections FROM auth WHERE $__timeFilter(timestamp)",
           "format": "table",
           "refId": "A"
         }
@@ -48,7 +48,7 @@
     },
     {
       "id": 2,
-      "title": "Unique Attacking IPs",
+      "title": "Unique Sessions (commands)",
       "type": "stat",
       "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
       "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
@@ -73,7 +73,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT count(DISTINCT ip) AS unique_ips FROM sessions WHERE $__timeFilter(starttime)",
+          "rawSql": "SELECT count(DISTINCT session) AS unique_sessions FROM input WHERE $__timeFilter(timestamp)",
           "format": "table",
           "refId": "A"
         }
@@ -499,7 +499,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT d.timestamp AS time, s.ip AS src_ip, d.url, d.outfile, d.shasum FROM downloads d JOIN sessions s ON d.session = s.id WHERE $__timeFilter(d.timestamp) ORDER BY d.timestamp DESC",
+          "rawSql": "SELECT timestamp AS time, session, url, outfile, shasum FROM downloads WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC",
           "format": "table",
           "refId": "A"
         }
