@@ -147,7 +147,7 @@
     },
     {
       "id": 5,
-      "title": "Top Attacking IPs",
+      "title": "Top Usernames (all attempts)",
       "type": "table",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
       "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
@@ -174,7 +174,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT ip, count(*) AS connections, min(starttime) AS first_seen, max(starttime) AS last_seen FROM sessions WHERE $__timeFilter(starttime) GROUP BY ip ORDER BY connections DESC LIMIT 25",
+          "rawSql": "SELECT username, count(*) AS attempts, sum(CASE WHEN success THEN 1 ELSE 0 END) AS successful FROM auth WHERE $__timeFilter(timestamp) GROUP BY username ORDER BY attempts DESC LIMIT 25",
           "format": "table",
           "refId": "A"
         }
@@ -445,7 +445,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT i.timestamp AS time, s.ip AS src_ip, i.session, i.input FROM input i JOIN sessions s ON i.session = s.id WHERE $__timeFilter(i.timestamp) ORDER BY i.timestamp DESC LIMIT 200",
+          "rawSql": "SELECT timestamp AS time, session, input FROM input WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC LIMIT 200",
           "format": "table",
           "refId": "A"
         }
@@ -453,7 +453,7 @@
     },
     {
       "id": 16,
-      "title": "Sessions",
+      "title": "Auth Log",
       "type": "table",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 56 },
       "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
@@ -472,7 +472,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT s.starttime, s.endtime, s.ip, s.id AS session, s.client FROM sessions s WHERE $__timeFilter(s.starttime) ORDER BY s.starttime DESC LIMIT 200",
+          "rawSql": "SELECT a.timestamp, a.username, a.password, a.success, a.session FROM auth a WHERE $__timeFilter(a.timestamp) ORDER BY a.timestamp DESC LIMIT 200",
           "format": "table",
           "refId": "A"
         }
