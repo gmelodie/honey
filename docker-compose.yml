@@ -4,8 +4,10 @@ services:
     container_name: grafana
     restart: unless-stopped
     network_mode: host   # access host Postgres via localhost
+    # Grafana listens on port 47321 (set via GF_SERVER_HTTP_PORT)
     env_file: .env
     environment:
+      - GF_SERVER_HTTP_PORT=47321
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

@@ -8,7 +8,7 @@ set -euo pipefail
 
 RANGES_FILE="/etc/ipset/brazil-ipv4.txt"
 IPSET_NAME="br-grafana"
-PORT=3000
+PORT=47321
 
 mkdir -p /etc/ipset
 
