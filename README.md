@@ -41,7 +41,13 @@ Grafana dashboard for visualizing [Cowrie](https://github.com/cowrie/cowrie) hon
 | Top Usernames / Passwords | Most attempted credentials |
 | Top Credential Pairs | Username + password combos |
 | Failed / Successful Logins | Time series |
-| "ubuntu" Failed Logins | Time series for ubuntu account |
+| Success Rate Over Time | Login success % as a time series |
+| Unique Malware Hashes | Count of distinct SHA256s seen |
+| Top Downloaded URLs | Most-fetched URLs by download count |
+| Malware Hashes | SHA256 hash table with download counts |
+| Attacks by Hour of Day | Bar chart of attempts grouped by UTC hour |
+| Attacks by Day of Week | Bar chart of attempts grouped by day |
+| SSH Client Versions | Ranked table of attacker SSH client strings |
 | Commands | Full command log with session and source IP |
 | Sessions | Raw session log |
 | Downloads | Files downloaded by attackers |
