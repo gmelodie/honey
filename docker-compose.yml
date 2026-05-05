@@ -33,14 +33,16 @@ services:
       - grafana-data:/var/lib/grafana
 
   cowrie:
-    image: cowrie/cowrie:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.cowrie
     container_name: cowrie
     restart: unless-stopped
     network_mode: host
     volumes:
-      - /mnt/cowrie/etc/cowrie.cfg:/home/cowrie/cowrie/etc/cowrie.cfg:ro
-      - /mnt/cowrie/var/log/cowrie:/home/cowrie/cowrie/var/log/cowrie
-      - /mnt/cowrie/var/lib/cowrie:/home/cowrie/cowrie/var/lib/cowrie
+      - ./cowrie/etc/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
+      - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
+      - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
 volumes:
   grafana-data:
