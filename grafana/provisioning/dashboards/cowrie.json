@@ -1,14 +1,20 @@
 {
   "title": "Cowrie Dashboard",
   "uid": "cowrie-postgres-dash",
-  "description": "Cowrie honeypot overview — data from PostgreSQL",
+  "description": "Cowrie honeypot overview \u2014 data from PostgreSQL",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "refresh": "1m",
   "schemaVersion": 40,
-  "tags": ["cowrie", "honeypot"],
-  "time": { "from": "now-6h", "to": "now" },
+  "tags": [
+    "cowrie",
+    "honeypot"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "weekStart": "",
@@ -17,14 +23,28 @@
       "id": 1,
       "title": "Total Connections",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
@@ -32,14 +52,22 @@
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT count(DISTINCT session) AS connections FROM auth WHERE $__timeFilter(timestamp)",
           "format": "table",
           "refId": "A"
@@ -50,14 +78,28 @@
       "id": 2,
       "title": "Unique Sessions (commands)",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
@@ -65,14 +107,22 @@
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "blue", "value": null }]
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT count(DISTINCT session) AS unique_sessions FROM input WHERE $__timeFilter(timestamp)",
           "format": "table",
           "refId": "A"
@@ -83,14 +133,28 @@
       "id": 3,
       "title": "Auth Attempts",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
@@ -98,14 +162,22 @@
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "orange", "value": null }]
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT count(*) AS attempts FROM auth WHERE $__timeFilter(timestamp)",
           "format": "table",
           "refId": "A"
@@ -116,14 +188,28 @@
       "id": 4,
       "title": "Commands Executed",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
@@ -131,14 +217,22 @@
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "red", "value": null }]
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT count(*) AS commands FROM input WHERE $__timeFilter(timestamp)",
           "format": "table",
           "refId": "A"
@@ -149,31 +243,80 @@
       "id": 5,
       "title": "Top Usernames (all attempts)",
       "type": "table",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "connections", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "connections",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "connections" },
+            "matcher": {
+              "id": "byName",
+              "options": "connections"
+            },
             "properties": [
-              { "id": "custom.displayMode", "value": "color-background" },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] } }
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 10
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
             ]
           }
         ]
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT username, count(*) AS attempts, sum(CASE WHEN success THEN 1 ELSE 0 END) AS successful FROM auth WHERE $__timeFilter(timestamp) GROUP BY username ORDER BY attempts DESC LIMIT 25",
           "format": "table",
           "refId": "A"
@@ -184,28 +327,52 @@
       "id": 6,
       "title": "Top Usernames Attempted",
       "type": "barchart",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "barRadius": 0,
         "barWidth": 0.8,
         "fillOpacity": 80,
         "groupWidth": 0.7,
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "orientation": "horizontal",
-        "tooltip": { "mode": "single", "sort": "none" },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
         "xTickLabelRotation": 0
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 1, "fillOpacity": 80 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT username, count(*) AS attempts FROM auth WHERE $__timeFilter(timestamp) GROUP BY username ORDER BY attempts DESC LIMIT 15",
           "format": "table",
           "refId": "A"
@@ -216,28 +383,52 @@
       "id": 7,
       "title": "Top Passwords Attempted",
       "type": "barchart",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 18 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "barRadius": 0,
         "barWidth": 0.8,
         "fillOpacity": 80,
         "groupWidth": 0.7,
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "orientation": "horizontal",
-        "tooltip": { "mode": "single", "sort": "none" },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
         "xTickLabelRotation": 0
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 1, "fillOpacity": 80 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT password, count(*) AS attempts FROM auth WHERE $__timeFilter(timestamp) GROUP BY password ORDER BY attempts DESC LIMIT 15",
           "format": "table",
           "refId": "A"
@@ -248,23 +439,47 @@
       "id": 8,
       "title": "Top Credential Pairs",
       "type": "table",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 18 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "attempts", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "attempts",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT username, password, count(*) AS attempts FROM auth WHERE $__timeFilter(timestamp) GROUP BY username, password ORDER BY attempts DESC LIMIT 25",
           "format": "table",
           "refId": "A"
@@ -276,21 +491,44 @@
       "collapsed": false,
       "title": "Login Stats",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      }
     },
     {
       "id": 10,
       "title": "Failed Logins",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
@@ -303,7 +541,10 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT $__timeGroup(timestamp, $__interval) AS time, count(*) AS \"failed logins\" FROM auth WHERE $__timeFilter(timestamp) AND success = false GROUP BY 1 ORDER BY 1",
           "format": "time_series",
           "refId": "A"
@@ -314,15 +555,33 @@
       "id": 11,
       "title": "Successful Logins",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
@@ -335,7 +594,10 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT $__timeGroup(timestamp, $__interval) AS time, count(*) AS \"successful logins\" FROM auth WHERE $__timeFilter(timestamp) AND success = true GROUP BY 1 ORDER BY 1",
           "format": "time_series",
           "refId": "A"
@@ -347,20 +609,39 @@
       "collapsed": false,
       "title": "Downloads & Malware",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      }
     },
     {
       "id": 21,
       "title": "Unique Malware Hashes",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 38 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 38
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "textMode": "auto"
       },
       "fieldConfig": {
@@ -368,14 +649,30 @@
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 20 }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
           }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT count(DISTINCT shasum) AS unique_hashes FROM downloads WHERE $__timeFilter(timestamp) AND shasum IS NOT NULL AND shasum != ''",
           "format": "table",
           "refId": "A"
@@ -386,26 +683,50 @@
       "id": 22,
       "title": "Top Downloaded URLs",
       "type": "barchart",
-      "gridPos": { "h": 10, "w": 12, "x": 4, "y": 38 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 4,
+        "y": 38
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "barRadius": 0,
         "barWidth": 0.8,
         "fillOpacity": 80,
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "orientation": "horizontal",
-        "tooltip": { "mode": "single", "sort": "none" }
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 1, "fillOpacity": 80 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT url, count(*) AS downloads FROM downloads WHERE $__timeFilter(timestamp) AND url IS NOT NULL GROUP BY url ORDER BY downloads DESC LIMIT 10",
           "format": "table",
           "refId": "A"
@@ -416,23 +737,47 @@
       "id": 23,
       "title": "Malware Hashes",
       "type": "table",
-      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 38 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 38
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "downloads", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "downloads",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT substring(url FROM '[^/]+$') AS filename, shasum, count(*) AS downloads FROM downloads WHERE $__timeFilter(timestamp) AND shasum IS NOT NULL AND shasum != '' GROUP BY filename, shasum ORDER BY downloads DESC LIMIT 20",
           "format": "table",
           "refId": "A"
@@ -444,33 +789,62 @@
       "collapsed": false,
       "title": "Timing Patterns",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      }
     },
     {
       "id": 25,
       "title": "Attacks by Hour of Day",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 49 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "barRadius": 0,
         "barWidth": 0.8,
         "fillOpacity": 80,
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "orientation": "vertical",
-        "tooltip": { "mode": "single", "sort": "none" },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
         "xTickLabelRotation": 0
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 1, "fillOpacity": 80 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT LPAD(EXTRACT(HOUR FROM timestamp)::int::text, 2, '0') || ':00' AS hour, count(*) AS attempts FROM auth WHERE $__timeFilter(timestamp) GROUP BY EXTRACT(HOUR FROM timestamp)::int ORDER BY EXTRACT(HOUR FROM timestamp)::int",
           "format": "table",
           "refId": "A"
@@ -481,27 +855,51 @@
       "id": 26,
       "title": "Attacks by Day of Week",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 49 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "barRadius": 0,
         "barWidth": 0.8,
         "fillOpacity": 80,
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "orientation": "vertical",
-        "tooltip": { "mode": "single", "sort": "none" },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
         "xTickLabelRotation": 0
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 1, "fillOpacity": 80 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT TO_CHAR(timestamp, 'Dy') AS day, EXTRACT(DOW FROM timestamp)::int AS dow, count(*) AS attempts FROM auth WHERE $__timeFilter(timestamp) GROUP BY day, dow ORDER BY dow",
           "format": "table",
           "refId": "A"
@@ -512,15 +910,33 @@
       "id": 27,
       "title": "Success Rate Over Time",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 57 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "drawStyle": "line",
             "lineWidth": 2,
@@ -536,7 +952,10 @@
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT $__timeGroup(timestamp, $__interval) AS time, round(sum(CASE WHEN success THEN 1 ELSE 0 END)::numeric / NULLIF(count(*), 0), 4) AS \"success rate\" FROM auth WHERE $__timeFilter(timestamp) GROUP BY 1 ORDER BY 1",
           "format": "time_series",
           "refId": "A"
@@ -548,38 +967,92 @@
       "collapsed": false,
       "title": "Client Fingerprints",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 65 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 65
+      }
     },
     {
       "id": 29,
       "title": "SSH Client Versions",
       "type": "table",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 66 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "connections", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "connections",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "connections" },
+            "matcher": {
+              "id": "byName",
+              "options": "connections"
+            },
             "properties": [
-              { "id": "custom.displayMode", "value": "color-background" },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 50 }] } }
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 10
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
             ]
           }
         ]
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
-          "rawSql": "SELECT version AS client_version, count(*) AS connections FROM clients WHERE $__timeFilter(timestamp) GROUP BY version ORDER BY connections DESC LIMIT 30",
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
+          "rawSql": "SELECT c.version AS client_version, count(*) AS connections FROM sessions s JOIN clients c ON s.client = c.id WHERE $__timeFilter(s.starttime) GROUP BY c.version ORDER BY connections DESC LIMIT 30",
           "format": "table",
           "refId": "A"
         }
@@ -590,42 +1063,95 @@
       "collapsed": false,
       "title": "Activity Log",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 76 }
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 76
+      }
     },
     {
       "id": 15,
       "title": "Commands",
       "type": "table",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 77 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 77
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "time", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "time",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "time" },
-            "properties": [{ "id": "custom.width", "value": 180 }]
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "src_ip" },
-            "properties": [{ "id": "custom.width", "value": 130 }]
+            "matcher": {
+              "id": "byName",
+              "options": "src_ip"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "session" },
-            "properties": [{ "id": "custom.width", "value": 140 }]
+            "matcher": {
+              "id": "byName",
+              "options": "session"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
           }
         ]
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT timestamp AS time, session, input FROM input WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC LIMIT 200",
           "format": "table",
           "refId": "A"
@@ -636,23 +1162,47 @@
       "id": 16,
       "title": "Auth Log",
       "type": "table",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 87 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 87
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "starttime", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "starttime",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT a.timestamp, a.username, a.password, a.success, a.session FROM auth a WHERE $__timeFilter(a.timestamp) ORDER BY a.timestamp DESC LIMIT 200",
           "format": "table",
           "refId": "A"
@@ -663,23 +1213,47 @@
       "id": 17,
       "title": "Downloads",
       "type": "table",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 97 },
-      "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 97
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "cowrie-postgres"
+      },
       "options": {
         "cellHeight": "sm",
-        "footer": { "show": false },
+        "footer": {
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "displayName": "time", "desc": true }]
+        "sortBy": [
+          {
+            "displayName": "time",
+            "desc": true
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
         },
         "overrides": []
       },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "cowrie-postgres" },
+          "datasource": {
+            "type": "postgres",
+            "uid": "cowrie-postgres"
+          },
           "rawSql": "SELECT timestamp AS time, session, url, outfile, shasum FROM downloads WHERE $__timeFilter(timestamp) ORDER BY timestamp DESC",
           "format": "table",
           "refId": "A"
