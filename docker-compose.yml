@@ -65,5 +65,33 @@ services:
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
+  wordlists:
+    image: python:3.12-slim
+    container_name: wordlists
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=127.0.0.1
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - WORDLIST_DIR=/wordlists
+    volumes:
+      - ./scripts/generate-wordlists.py:/usr/local/bin/generate-wordlists.py:ro
+      - ./wordlists:/wordlists
+    # Run once at startup, then every day at 03:00 UTC via crond
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        pip install psycopg2-binary -q
+        python /usr/local/bin/generate-wordlists.py
+        echo "0 3 * * * python /usr/local/bin/generate-wordlists.py >> /var/log/wordlists.log 2>&1" | crontab -
+        crond -f -d 8
+
 volumes:
   grafana-data:
