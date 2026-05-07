@@ -65,5 +65,64 @@ services:
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
+  # Web honeypot — fake router admin panel served to unknown HTTP/HTTPS clients
+  honeypot-web:
+    build: ./honeypot-web
+    container_name: honeypot-web
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./honeypot-web/logs:/var/log
+
+  # Stats dashboard — cowrie attack data from PostgreSQL, behind reCAPTCHA
+  web:
+    build: ./web
+    container_name: web
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST:-127.0.0.1}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Nginx — routes port 80/443 by Host header
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      - TARGET_HOST=${TARGET_HOST}
+    volumes:
+      - ./letsencrypt:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - web
+      - honeypot-web
+
+  # Certbot — automatic certificate renewal (runs every 12 h)
+  certbot:
+    image: certbot/certbot
+    network_mode: host
+    volumes:
+      - ./letsencrypt:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+      while :; do
+        certbot renew --webroot --webroot-path /var/www/certbot --quiet;
+        sleep 12h & wait $${!};
+      done"
+
 volumes:
   grafana-data:
