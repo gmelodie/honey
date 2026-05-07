@@ -52,10 +52,10 @@ ss -tlnp | grep ':22'
 ### 3. Configure credentials
 
 ```bash
-cp .env .env.local  # optional backup
+cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` with your chosen passwords:
 
 ```env
 POSTGRES_HOST=127.0.0.1
@@ -68,29 +68,11 @@ GF_SECURITY_ADMIN_USER=admin
 GF_SECURITY_ADMIN_PASSWORD=change-me-grafana-password
 ```
 
+All services — PostgreSQL, Cowrie, and Grafana — read credentials from `.env`. You only need to set them once.
+
 ### 4. Review Cowrie config (optional)
 
-`config/cowrie.cfg` has sane defaults. Notable options:
-
-```ini
-[ssh]
-enabled = true
-listen_endpoints = tcp:22:interface=0.0.0.0
-
-[telnet]
-enabled = true
-listen_endpoints = tcp:23:interface=0.0.0.0
-
-[output_postgresql]
-enabled = true
-host = 127.0.0.1
-port = 5432
-database = cowrie
-username = cowrie
-password = strongpassword   # must match POSTGRES_PASSWORD in .env
-```
-
-Update the `password` in `cowrie.cfg` to match `POSTGRES_PASSWORD` in `.env` if you changed it.
+`config/cowrie.cfg` has sane defaults for SSH/Telnet behaviour. PostgreSQL credentials are injected automatically from `.env` at startup — no manual edits needed for the database section.
 
 ### 5. Start the stack
 
