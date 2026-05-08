@@ -58,13 +58,15 @@ services:
     container_name: cowrie
     restart: unless-stopped
     network_mode: host
+    user: root
     env_file: .env
     depends_on:
       postgres-init:
         condition: service_completed_successfully
-    entrypoint: ["/cowrie/cowrie-env/bin/python3", "-c", "import subprocess,os,sys,re; subprocess.run([sys.executable,'-m','pip','install','psycopg2-binary','-q']); t=open('/tmp/cowrie.cfg.template').read(); c=re.sub(r'\\$\\{(\\w+)\\}',lambda m:os.environ.get(m.group(1),m.group(0)),t); open('/cowrie/cowrie-git/etc/cowrie.cfg','w').write(c); os.execv('/cowrie/cowrie-env/bin/twistd',['/cowrie/cowrie-env/bin/twistd','-n','cowrie'])"]
+    entrypoint: ["/cowrie/cowrie-env/bin/python3", "/cowrie/cowrie-env/entrypoint.py"]
     volumes:
       - ./config/cowrie.cfg:/tmp/cowrie.cfg.template:ro
+      - ./cowrie/entrypoint.py:/cowrie/cowrie-env/entrypoint.py:ro
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
