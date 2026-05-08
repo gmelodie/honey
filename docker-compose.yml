@@ -146,14 +146,15 @@ services:
     volumes:
       - ./scripts/generate-wordlists.py:/usr/local/bin/generate-wordlists.py:ro
       - ./wordlists:/wordlists
-    # Run once at startup, then every day at 03:00 UTC via crond
+    # Run once at startup, then every day at 03:00 UTC via cron
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
+        apt-get update -qq && apt-get install -y -qq cron
         pip install psycopg2-binary -q
         python /usr/local/bin/generate-wordlists.py
         echo "0 3 * * * python /usr/local/bin/generate-wordlists.py >> /var/log/wordlists.log 2>&1" | crontab -
-        crond -f -d 8
+        cron -f
 
 volumes:
   postgres-data:

@@ -9,7 +9,7 @@ PG_PID=$!
 trap "kill -TERM $PG_PID" SIGTERM SIGINT
 
 # Wait for the unix socket to accept connections (no auth required)
-until pg_isready -q 2>/dev/null; do
+until pg_isready -U "$POSTGRES_USER" -q 2>/dev/null; do
     sleep 1
 done
 
