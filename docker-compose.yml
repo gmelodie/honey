@@ -33,26 +33,6 @@ services:
       - ./postgres/schema.sql:/schema.sql:ro
     restart: "no"
 
-  grafana:
-    image: grafana/grafana:11.5.1
-    container_name: grafana
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      postgres:
-        condition: service_healthy
-    # Grafana listens on port 47321 (set via GF_SERVER_HTTP_PORT)
-    env_file: .env
-    environment:
-      - GF_SERVER_HTTP_PORT=47321
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-      - GF_DATABASE_WAL=true
-      - GF_AUTH_LOGIN_MAXIMUM_INACTIVE_LIFETIME_DURATION=7d
-      - GF_AUTH_LOGIN_MAXIMUM_LIFETIME_DURATION=30d
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - grafana-data:/var/lib/grafana
-
   cowrie:
     build: ./cowrie
     container_name: cowrie
@@ -125,35 +105,5 @@ services:
         sleep 12h & wait $${!};
       done"
 
-  wordlists:
-    image: python:3.12-slim
-    container_name: wordlists
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file: .env
-    environment:
-      - POSTGRES_HOST=127.0.0.1
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - WORDLIST_DIR=/wordlists
-    volumes:
-      - ./scripts/generate-wordlists.py:/usr/local/bin/generate-wordlists.py:ro
-      - ./wordlists:/wordlists
-    # Run once at startup, then every day at 03:00 UTC via cron
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        apt-get update -qq && apt-get install -y -qq cron
-        pip install psycopg2-binary -q
-        python /usr/local/bin/generate-wordlists.py
-        echo "0 3 * * * python /usr/local/bin/generate-wordlists.py >> /var/log/wordlists.log 2>&1" | crontab -
-        cron -f
-
 volumes:
   postgres-data:
-  grafana-data:
