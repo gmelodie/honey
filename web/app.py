@@ -1,8 +1,10 @@
+import gzip
+import io
 import os
 import requests
 import psycopg2
 import psycopg2.extras
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 from datetime import datetime, timedelta, timezone
 
 app = Flask(__name__)
@@ -267,4 +269,126 @@ def stats():
     finally:
         conn.close()
 
+
+def _fmt_bytes(n):
+    for unit in ("B", "KB", "MB"):
+        if n < 1024:
+            return f"{n:.0f} {unit}"
+        n /= 1024
+    return f"{n:.1f} GB"
+
+
+@app.route("/api/wordlist")
+def wordlist_meta():
+    conn = _conn()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT COUNT(DISTINCT username)      AS total,
+                       COALESCE(AVG(LENGTH(username))::int, 0) AS avg_len,
+                       MIN(timestamp) AS oldest, MAX(timestamp) AS newest
+                FROM auth WHERE username IS NOT NULL AND username != ''
+            """)
+            u = cur.fetchone()
+            cur.execute("""
+                SELECT username FROM auth
+                WHERE username IS NOT NULL AND username != ''
+                GROUP BY username ORDER BY COUNT(*) DESC LIMIT 20
+            """)
+            u_preview = [r["username"] for r in cur.fetchall()]
+
+            cur.execute("""
+                SELECT COUNT(DISTINCT password)      AS total,
+                       COALESCE(AVG(LENGTH(password))::int, 0) AS avg_len
+                FROM auth WHERE password IS NOT NULL AND password != ''
+            """)
+            p = cur.fetchone()
+            cur.execute("""
+                SELECT password FROM auth
+                WHERE password IS NOT NULL AND password != ''
+                GROUP BY password ORDER BY COUNT(*) DESC LIMIT 20
+            """)
+            p_preview = [r["password"] for r in cur.fetchall()]
+
+            cur.execute("""
+                SELECT COUNT(DISTINCT (username, password)) AS total,
+                       COALESCE(AVG(LENGTH(username) + LENGTH(password) + 1)::int, 0) AS avg_len
+                FROM auth WHERE username IS NOT NULL AND password IS NOT NULL
+            """)
+            pa = cur.fetchone()
+            cur.execute("""
+                SELECT username, password FROM auth
+                WHERE username IS NOT NULL AND password IS NOT NULL
+                GROUP BY username, password ORDER BY COUNT(*) DESC LIMIT 20
+            """)
+            pa_preview = [f"{r['username']}:{r['password']}" for r in cur.fetchall()]
+
+        def stats(row, preview, extra_avg=None):
+            total = int(row["total"])
+            avg = int(extra_avg or row.get("avg_len") or 0)
+            raw = total * (avg + 1)
+            gz  = int(raw * 0.35)
+            return {
+                "total":   total,
+                "oldest":  row["oldest"].isoformat() if row.get("oldest") else None,
+                "newest":  row["newest"].isoformat() if row.get("newest") else None,
+                "raw_size": _fmt_bytes(raw),
+                "gz_size":  _fmt_bytes(gz),
+                "preview": preview,
+            }
+
+        return jsonify({
+            "usernames": stats(u, u_preview),
+            "passwords": stats({**p, "oldest": u["oldest"], "newest": u["newest"]}, p_preview),
+            "pairs":     stats({**pa, "oldest": u["oldest"], "newest": u["newest"]}, pa_preview),
+        })
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/wordlist/<wtype>/download")
+def wordlist_download(wtype):
+    if wtype not in ("usernames", "passwords", "pairs"):
+        return jsonify({"error": "invalid type"}), 400
+    conn = _conn()
+    try:
+        with conn.cursor() as cur:
+            if wtype == "usernames":
+                cur.execute("""
+                    SELECT username FROM auth
+                    WHERE username IS NOT NULL AND username != ''
+                    GROUP BY username ORDER BY COUNT(*) DESC
+                """)
+                lines = [r[0] for r in cur.fetchall()]
+            elif wtype == "passwords":
+                cur.execute("""
+                    SELECT password FROM auth
+                    WHERE password IS NOT NULL AND password != ''
+                    GROUP BY password ORDER BY COUNT(*) DESC
+                """)
+                lines = [r[0] for r in cur.fetchall()]
+            else:
+                cur.execute("""
+                    SELECT username, password FROM auth
+                    WHERE username IS NOT NULL AND password IS NOT NULL
+                    GROUP BY username, password ORDER BY COUNT(*) DESC
+                """)
+                lines = [f"{r[0]}:{r[1]}" for r in cur.fetchall()]
+
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode="wb") as gz:
+            for line in lines:
+                gz.write((line + "\n").encode("utf-8", errors="replace"))
+        buf.seek(0)
+        return Response(
+            buf.read(),
+            mimetype="application/gzip",
+            headers={"Content-Disposition": f"attachment; filename=autopot_{wtype}.txt.gz"},
+        )
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
