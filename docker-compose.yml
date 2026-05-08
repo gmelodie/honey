@@ -47,15 +47,6 @@ services:
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
-  # Web honeypot — fake router admin panel served to unknown HTTP/HTTPS clients
-  honeypot-web:
-    build: ./honeypot-web
-    container_name: honeypot-web
-    restart: unless-stopped
-    network_mode: host
-    volumes:
-      - ./honeypot-web/logs:/var/log
-
   # Stats dashboard — cowrie attack data from PostgreSQL, behind reCAPTCHA
   web:
     build: ./web
@@ -89,7 +80,6 @@ services:
       - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - web
-      - honeypot-web
 
   # Certbot — automatic certificate renewal (runs every 12 h)
   certbot:
