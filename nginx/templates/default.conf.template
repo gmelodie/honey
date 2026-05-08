@@ -14,18 +14,11 @@ server {
     }
 }
 
-# All other HTTP hosts → web honeypot
+# All other HTTP hosts → drop
 server {
     listen 80 default_server;
     server_name _;
-
-    location / {
-        proxy_pass         http://127.0.0.1:8374;
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_read_timeout 10s;
-    }
+    return 444;
 }
 
 # ─── HTTPS ───────────────────────────────────────────────────────────────────
@@ -60,8 +53,7 @@ server {
     }
 }
 
-# Catch-all HTTPS (unknown SNI / wrong host) → honeypot, self-signed cert so we
-# don't leak TARGET_HOST's certificate to random clients
+# Catch-all HTTPS (unknown SNI / wrong host) → drop
 server {
     listen 443 ssl default_server;
     server_name _;
@@ -69,10 +61,5 @@ server {
     ssl_certificate     /etc/nginx/ssl/catchall.crt;
     ssl_certificate_key /etc/nginx/ssl/catchall.key;
 
-    location / {
-        proxy_pass         http://127.0.0.1:8374;
-        proxy_set_header   Host            $host;
-        proxy_set_header   X-Real-IP       $remote_addr;
-        proxy_read_timeout 10s;
-    }
+    return 444;
 }
