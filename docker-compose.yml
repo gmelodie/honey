@@ -54,19 +54,16 @@ services:
       - grafana-data:/var/lib/grafana
 
   cowrie:
-    image: cowrie/cowrie:latest
+    build: ./cowrie
     container_name: cowrie
     restart: unless-stopped
     network_mode: host
-    user: root
     env_file: .env
     depends_on:
       postgres-init:
         condition: service_completed_successfully
-    entrypoint: ["/cowrie/cowrie-env/bin/python3", "/cowrie/cowrie-env/entrypoint.py"]
     volumes:
       - ./config/cowrie.cfg:/tmp/cowrie.cfg.template:ro
-      - ./cowrie/entrypoint.py:/cowrie/cowrie-env/entrypoint.py:ro
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
