@@ -2,6 +2,7 @@ import os
 import re
 import requests
 import psycopg2
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import psycopg2.extras
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta, timezone
@@ -289,14 +290,7 @@ _SHA256_RE = re.compile(r'^[0-9a-f]{64}$', re.I)
 VT_KEY = os.environ.get("VIRUSTOTAL_API_KEY", "")
 
 
-@app.route("/api/lookup/<sha256>")
-def lookup(sha256):
-    if not _SHA256_RE.match(sha256):
-        return jsonify({"error": "invalid hash"}), 400
-
-    result = {"sha256": sha256.lower()}
-
-    # ── MalwareBazaar (free, no key) ──────────────────────────────────────
+def _query_malwarebazaar(sha256):
     try:
         r = requests.post(
             "https://mb-api.abuse.ch/api/v1/",
@@ -307,67 +301,81 @@ def lookup(sha256):
         mb = r.json()
         if mb.get("query_status") == "ok" and mb.get("data"):
             d = mb["data"][0]
-            result["malwarebazaar"] = {
-                "found":        True,
-                "file_name":    d.get("file_name"),
-                "file_type":    d.get("file_type"),
+            return {
+                "found":          True,
+                "file_name":      d.get("file_name"),
+                "file_type":      d.get("file_type"),
                 "file_type_mime": d.get("file_type_mime"),
-                "file_size":    d.get("file_size"),
-                "signature":    d.get("signature"),
-                "tags":         d.get("tags") or [],
-                "first_seen":   d.get("first_seen"),
-                "last_seen":    d.get("last_seen"),
-                "reporter":     d.get("reporter"),
-                "md5":          d.get("md5_hash"),
-                "sha1":         d.get("sha1_hash"),
-                "downloads":    (d.get("intelligence") or {}).get("downloads"),
-                "uploads":      (d.get("intelligence") or {}).get("uploads"),
-                "clamav":       (d.get("intelligence") or {}).get("clamav"),
-                "delivery":     d.get("delivery_method"),
-                "origin":       d.get("origin_country"),
-                "url":          f"https://bazaar.abuse.ch/sample/{sha256.lower()}/",
+                "file_size":      d.get("file_size"),
+                "signature":      d.get("signature"),
+                "tags":           d.get("tags") or [],
+                "first_seen":     d.get("first_seen"),
+                "last_seen":      d.get("last_seen"),
+                "reporter":       d.get("reporter"),
+                "md5":            d.get("md5_hash"),
+                "sha1":           d.get("sha1_hash"),
+                "downloads":      (d.get("intelligence") or {}).get("downloads"),
+                "uploads":        (d.get("intelligence") or {}).get("uploads"),
+                "clamav":         (d.get("intelligence") or {}).get("clamav"),
+                "delivery":       d.get("delivery_method"),
+                "origin":         d.get("origin_country"),
+                "url":            f"https://bazaar.abuse.ch/sample/{sha256.lower()}/",
             }
-        else:
-            result["malwarebazaar"] = {"found": False}
+        return {"found": False}
     except Exception as e:
-        result["malwarebazaar"] = {"found": False, "error": str(e)}
+        return {"found": False, "error": str(e)}
 
-    # ── VirusTotal (optional — needs VIRUSTOTAL_API_KEY) ──────────────────
+
+def _query_virustotal(sha256):
+    try:
+        r = requests.get(
+            f"https://www.virustotal.com/api/v3/files/{sha256}",
+            headers={"x-apikey": VT_KEY, "Accept": "application/json"},
+            timeout=12,
+        )
+        if r.status_code == 200:
+            attr  = r.json()["data"]["attributes"]
+            stats = attr.get("last_analysis_stats", {})
+            malicious  = stats.get("malicious", 0)
+            suspicious = stats.get("suspicious", 0)
+            undetected = stats.get("undetected", 0)
+            harmless   = stats.get("harmless", 0)
+            return {
+                "found":      True,
+                "malicious":  malicious,
+                "suspicious": suspicious,
+                "undetected": undetected,
+                "total":      malicious + suspicious + undetected + harmless,
+                "name":       attr.get("meaningful_name"),
+                "type":       attr.get("type_description"),
+                "names":      (attr.get("names") or [])[:8],
+                "tags":       attr.get("tags") or [],
+                "first_seen": attr.get("first_submission_date"),
+                "last_seen":  attr.get("last_submission_date"),
+                "size":       attr.get("size"),
+                "url":        f"https://www.virustotal.com/gui/file/{sha256.lower()}",
+            }
+        if r.status_code == 404:
+            return {"found": False}
+        return {"found": False, "error": f"HTTP {r.status_code}"}
+    except Exception as e:
+        return {"found": False, "error": str(e)}
+
+
+@app.route("/api/lookup/<sha256>")
+def lookup(sha256):
+    if not _SHA256_RE.match(sha256):
+        return jsonify({"error": "invalid hash"}), 400
+
+    result = {"sha256": sha256.lower()}
+
+    tasks = {"malwarebazaar": (_query_malwarebazaar, sha256)}
     if VT_KEY:
-        try:
-            r = requests.get(
-                f"https://www.virustotal.com/api/v3/files/{sha256}",
-                headers={"x-apikey": VT_KEY, "Accept": "application/json"},
-                timeout=12,
-            )
-            if r.status_code == 200:
-                attr = r.json()["data"]["attributes"]
-                stats = attr.get("last_analysis_stats", {})
-                malicious   = stats.get("malicious", 0)
-                suspicious  = stats.get("suspicious", 0)
-                undetected  = stats.get("undetected", 0)
-                harmless    = stats.get("harmless", 0)
-                total       = malicious + suspicious + undetected + harmless
-                result["virustotal"] = {
-                    "found":        True,
-                    "malicious":    malicious,
-                    "suspicious":   suspicious,
-                    "undetected":   undetected,
-                    "total":        total,
-                    "name":         attr.get("meaningful_name"),
-                    "type":         attr.get("type_description"),
-                    "names":        (attr.get("names") or [])[:8],
-                    "tags":         attr.get("tags") or [],
-                    "first_seen":   attr.get("first_submission_date"),
-                    "last_seen":    attr.get("last_submission_date"),
-                    "size":         attr.get("size"),
-                    "url":          f"https://www.virustotal.com/gui/file/{sha256.lower()}",
-                }
-            elif r.status_code == 404:
-                result["virustotal"] = {"found": False}
-            else:
-                result["virustotal"] = {"found": False, "error": f"HTTP {r.status_code}"}
-        except Exception as e:
-            result["virustotal"] = {"found": False, "error": str(e)}
+        tasks["virustotal"] = (_query_virustotal, sha256)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {pool.submit(fn, arg): key for key, (fn, arg) in tasks.items()}
+        for future in as_completed(futures):
+            result[futures[future]] = future.result()
 
     return jsonify(result)

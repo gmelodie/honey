@@ -419,12 +419,17 @@ async function openLookup(sha256) {
   modal.hidden = false;
   modal.querySelector('.modal-card').focus?.();
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const res  = await fetch(`/api/lookup/${encodeURIComponent(sha256)}`);
+    const res  = await fetch(`/api/lookup/${encodeURIComponent(sha256)}`, { signal: controller.signal });
     const data = await res.json();
     renderLookup(data);
   } catch (err) {
-    modalBody.innerHTML = `<p style="color:var(--c-red);font-family:monospace;padding:8px">Error: ${esc(err.message)}</p>`;
+    const msg = err.name === 'AbortError' ? 'Request timed out' : err.message;
+    modalBody.innerHTML = `<p style="color:var(--c-red);font-family:monospace;padding:8px">Error: ${esc(msg)}</p>`;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
