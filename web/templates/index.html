@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
-  <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
+  <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render={{ recaptcha_site_key or 'explicit' }}" async defer></script>
 </head>
 <body>
 
@@ -35,7 +35,6 @@
       </div>
     </div>
     <p class="gate-desc">Verify you're human to access live attack statistics.</p>
-    <div class="captcha-wrap" id="captcha-widget"></div>
     <button id="enter-btn" class="btn-enter" disabled>
       <span>Enter Dashboard</span>
       <svg viewBox="0 0 20 20" fill="currentColor">

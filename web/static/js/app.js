@@ -78,35 +78,28 @@ function syncThemeIcon(t) {
   $('icon-sun').hidden  = t !== 'light';
 }
 
-// ── reCAPTCHA ─────────────────────────────────────────────────────────────
-let captchaToken = null;
-
+// ── reCAPTCHA v3 ──────────────────────────────────────────────────────────
 window.onRecaptchaLoad = () => {
   if (!window.__RC_SITE_KEY__) { openDashboard(); return; }
-  grecaptcha.render('captcha-widget', {
-    sitekey: window.__RC_SITE_KEY__,
-    theme: root.dataset.theme === 'light' ? 'light' : 'dark',
-    callback: tok => { captchaToken = tok; $('enter-btn').disabled = false; },
-    'expired-callback': () => { captchaToken = null; $('enter-btn').disabled = true; },
-  });
+  grecaptcha.ready(() => { $('enter-btn').disabled = false; });
 };
 
 $('enter-btn').addEventListener('click', async () => {
-  if (!captchaToken) return;
   $('enter-btn').disabled = true;
   $('gate-error').hidden = true;
   try {
-    const res  = await fetch('/api/verify-captcha', {
+    const token = await grecaptcha.execute(window.__RC_SITE_KEY__, { action: 'enter' });
+    const res   = await fetch('/api/verify-captcha', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: captchaToken }),
+      body: JSON.stringify({ token }),
     });
     const json = await res.json();
     if (json.success) {
       openDashboard();
     } else {
       showGateErr('Verification failed — please try again.');
-      grecaptcha.reset(); captchaToken = null; $('enter-btn').disabled = true;
+      $('enter-btn').disabled = false;
     }
   } catch {
     showGateErr('Network error — please try again.');

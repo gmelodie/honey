@@ -74,7 +74,9 @@ def verify_captcha():
         data={"secret": RECAPTCHA_SEC, "response": token},
         timeout=10,
     )
-    return jsonify({"success": bool(resp.json().get("success"))})
+    body = resp.json()
+    ok = bool(body.get("success")) and float(body.get("score", 0)) >= 0.5
+    return jsonify({"success": ok})
 
 
 @app.route("/api/stats")
