@@ -1,6 +1,207 @@
 'use strict';
 
-// ── Gruvbox chart palette (bright — readable on both light/dark bg) ────────
+// ── Translations ──────────────────────────────────────────────────────────
+const STRINGS = {
+  en: {
+    'gate.bar':            'autopot — access control',
+    'gate.subtitle':       'automated honeypot — ssh / telnet',
+    'gate.desc':           "Verify you're human to access live attack data.",
+    'gate.btn':            '[ ENTER DASHBOARD ]',
+    'gate.err.verify':     'Verification failed — please try again.',
+    'gate.err.network':    'Network error — please try again.',
+
+    'nav.dashboard':       'Dashboard',
+    'nav.wordlists':       'Wordlists',
+    'win.all':             'All',
+
+    'card.connections':      'Connections',
+    'card.connections.meta': 'distinct attacker sessions',
+    'card.auth':             'Auth Attempts',
+    'card.commands':         'Commands Run',
+    'card.ips':              'Unique IPs',
+    'card.ips.meta':         'distinct source addresses',
+    'card.downloads':        'File Downloads',
+
+    'section.overview':    'Overview',
+    'section.timeseries':  'Login Attempts Over Time',
+    'section.timing':      'Timing Patterns',
+    'section.credentials': 'Top Credentials',
+    'section.pairs':       'Top Credential Pairs',
+    'section.clients':     'SSH Client Versions',
+    'section.downloads':   'Downloads',
+    'section.logs':        'Activity Logs',
+
+    'chart.by_hour':   'Attacks by Hour of Day',
+    'chart.by_dow':    'Attacks by Day of Week',
+    'chart.usernames': 'Usernames',
+    'chart.passwords': 'Passwords',
+    'chart.top_urls':  'Top Download URLs',
+
+    'legend.failed':     'Failed',
+    'legend.successful': 'Successful',
+
+    'th.rank':        '#',
+    'th.username':    'Username',
+    'th.password':    'Password',
+    'th.attempts':    'Attempts',
+    'th.client':      'Client String',
+    'th.connections': 'Connections',
+    'th.time':        'Time',
+    'th.ip':          'IP',
+    'th.session':     'Session',
+    'th.command':     'Command',
+    'th.ok':          'OK',
+    'th.url':         'URL',
+    'th.sha':         'SHA-256',
+
+    'tab.commands': 'Commands',
+    'tab.auth':     'Auth Log',
+    'tab.dl':       'Downloads',
+
+    'loading.stats':      'Loading statistics…',
+    'loading.stats.spin': 'loading statistics…',
+    'loading.wordlists':  'Generating wordlists…',
+    'err.timeout':        'request timed out — is the server running?',
+    'err.hint':           'check: docker compose logs web',
+    'tbl.nodata':         'No data for this window',
+
+    'wl.title':         'Generated Wordlists',
+    'wl.desc':          'Ranked by attack frequency — most-seen credentials first. Downloads are gzip-compressed plaintext.',
+    'wl.usernames':     'Usernames',
+    'wl.passwords':     'Passwords',
+    'wl.pairs':         'Credential Pairs',
+    'wl.entries':       'entries',
+    'wl.period':        'period',
+    'wl.size':          '~size (gz)',
+    'wl.preview':       'preview — top 20 by frequency',
+    'wl.preview.pairs': 'preview — top 20 by frequency (user:pass format)',
+    'wl.empty':         'no data collected yet',
+
+    'meta.success_pct':  n => `${n}% success rate`,
+    'meta.cmd_sessions': n => `${n} sessions with input`,
+    'period.nodata':     'no data',
+
+    'dow': ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+  },
+  pt: {
+    'gate.bar':            'autopot — controlo de acesso',
+    'gate.subtitle':       'honeypot automatizado — ssh / telnet',
+    'gate.desc':           'Verifique que é humano para aceder aos dados de ataque em tempo real.',
+    'gate.btn':            '[ ENTRAR NO PAINEL ]',
+    'gate.err.verify':     'Verificação falhada — tente novamente.',
+    'gate.err.network':    'Erro de rede — tente novamente.',
+
+    'nav.dashboard':       'Painel',
+    'nav.wordlists':       'Wordlists',
+    'win.all':             'Tudo',
+
+    'card.connections':      'Ligações',
+    'card.connections.meta': 'sessões de atacantes distintos',
+    'card.auth':             'Tentativas de Auth',
+    'card.commands':         'Comandos Executados',
+    'card.ips':              'IPs Únicos',
+    'card.ips.meta':         'endereços de origem distintos',
+    'card.downloads':        'Ficheiros Descarregados',
+
+    'section.overview':    'Visão Geral',
+    'section.timeseries':  'Tentativas de Login ao Longo do Tempo',
+    'section.timing':      'Padrões Temporais',
+    'section.credentials': 'Credenciais Mais Usadas',
+    'section.pairs':       'Pares de Credenciais Mais Usados',
+    'section.clients':     'Versões de Cliente SSH',
+    'section.downloads':   'Descarregamentos',
+    'section.logs':        'Registos de Atividade',
+
+    'chart.by_hour':   'Ataques por Hora do Dia',
+    'chart.by_dow':    'Ataques por Dia da Semana',
+    'chart.usernames': 'Utilizadores',
+    'chart.passwords': 'Palavras-passe',
+    'chart.top_urls':  'URLs Mais Descarregados',
+
+    'legend.failed':     'Falharam',
+    'legend.successful': 'Com Sucesso',
+
+    'th.rank':        '#',
+    'th.username':    'Utilizador',
+    'th.password':    'Palavra-passe',
+    'th.attempts':    'Tentativas',
+    'th.client':      'Versão do Cliente',
+    'th.connections': 'Ligações',
+    'th.time':        'Hora',
+    'th.ip':          'IP',
+    'th.session':     'Sessão',
+    'th.command':     'Comando',
+    'th.ok':          'OK',
+    'th.url':         'URL',
+    'th.sha':         'SHA-256',
+
+    'tab.commands': 'Comandos',
+    'tab.auth':     'Registo de Auth',
+    'tab.dl':       'Descarregamentos',
+
+    'loading.stats':      'A carregar estatísticas…',
+    'loading.stats.spin': 'a carregar estatísticas…',
+    'loading.wordlists':  'A gerar wordlists…',
+    'err.timeout':        'pedido expirou — o servidor está a funcionar?',
+    'err.hint':           'verificar: docker compose logs web',
+    'tbl.nodata':         'Sem dados para este período',
+
+    'wl.title':         'Wordlists Geradas',
+    'wl.desc':          'Ordenadas por frequência de ataque — credenciais mais vistas primeiro. Os downloads são texto simples comprimido com gzip.',
+    'wl.usernames':     'Utilizadores',
+    'wl.passwords':     'Palavras-passe',
+    'wl.pairs':         'Pares de Credenciais',
+    'wl.entries':       'entradas',
+    'wl.period':        'período',
+    'wl.size':          '~tamanho (gz)',
+    'wl.preview':       'pré-visualização — top 20 por frequência',
+    'wl.preview.pairs': 'pré-visualização — top 20 por frequência (formato utilizador:senha)',
+    'wl.empty':         'sem dados recolhidos ainda',
+
+    'meta.success_pct':  n => `${n}% taxa de sucesso`,
+    'meta.cmd_sessions': n => `${n} sessões com input`,
+    'period.nodata':     'sem dados',
+
+    'dow': ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+  },
+};
+
+let currentLang = localStorage.getItem('lang') || 'en';
+
+function t(key) {
+  return (STRINGS[currentLang] || STRINGS.en)[key] ?? STRINGS.en[key] ?? key;
+}
+
+function tf(key, val) {
+  const v = t(key);
+  return typeof v === 'function' ? v(val) : v;
+}
+
+function applyLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  localStorage.setItem('lang', lang);
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const val = t(el.dataset.i18n);
+    if (typeof val === 'string') el.textContent = val;
+  });
+
+  document.querySelectorAll('.lang-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+
+  // Re-render live data with new language (translated DOW labels, empty states, etc.)
+  if (lastData && !$('page-dashboard').hidden) {
+    destroyCharts();
+    renderAll(lastData);
+  }
+  if (lastWlData && !$('page-wordlists').hidden) {
+    renderWordlists(lastWlData);
+  }
+}
+
+// ── Gruvbox chart palette (bright — readable on light and dark) ───────────
 const GBX = {
   red:    '#FB4934',
   green:  '#B8BB26',
@@ -11,11 +212,6 @@ const GBX = {
   orange: '#FE8019',
   gray:   '#A89984',
 };
-
-const PALETTE = [
-  GBX.aqua, GBX.green, GBX.yellow, GBX.red,
-  GBX.purple, GBX.orange, GBX.blue, GBX.gray,
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -44,7 +240,7 @@ function fmtTs(iso) {
 }
 
 function fmtPeriod(oldest, newest) {
-  if (!oldest) return 'no data';
+  if (!oldest) return t('period.nodata');
   const fmt = iso => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' });
   return `${fmt(oldest)} – ${fmt(newest)}`;
 }
@@ -83,6 +279,13 @@ function syncThemeIcon(t) {
   $('icon-moon').style.display = t === 'dark' ? 'none' : '';
 }
 
+// ── Language switcher ─────────────────────────────────────────────────────
+document.querySelectorAll('.lang-tab').forEach(btn => {
+  btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+});
+
+// Apply stored language on load (after DOM ready, handled below)
+
 // ── reCAPTCHA v3 ──────────────────────────────────────────────────────────
 window.onRecaptchaLoad = () => {
   if (!window.__RC_SITE_KEY__) { openDashboard(); return; }
@@ -103,11 +306,11 @@ $('enter-btn').addEventListener('click', async () => {
     if (json.success) {
       openDashboard();
     } else {
-      showGateErr('Verification failed — please try again.');
+      showGateErr(t('gate.err.verify'));
       $('enter-btn').disabled = false;
     }
   } catch {
-    showGateErr('Network error — please try again.');
+    showGateErr(t('gate.err.network'));
     $('enter-btn').disabled = false;
   }
 });
@@ -132,6 +335,8 @@ function openDashboard() {
 
 // ── Page navigation ───────────────────────────────────────────────────────
 let wordlistsLoaded = false;
+let lastData   = null;
+let lastWlData = null;
 
 document.querySelectorAll('.page-tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -174,7 +379,7 @@ document.querySelectorAll('.log-tab').forEach(btn => {
 async function loadStats() {
   $('loading').hidden    = false;
   $('stats-root').hidden = true;
-  $('loading').innerHTML = '<div class="spinner"></div><p>loading statistics…</p>';
+  $('loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -183,17 +388,18 @@ async function loadStats() {
     if (!res.ok) throw new Error(`server error ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
+    lastData = data;
     destroyCharts();
     renderAll(data);
     $('loading').hidden    = true;
     $('stats-root').hidden = false;
     $('last-updated').textContent = new Date().toLocaleTimeString();
   } catch (err) {
-    const msg = err.name === 'AbortError' ? 'request timed out — is the server running?' : err.message;
+    const msg = err.name === 'AbortError' ? t('err.timeout') : err.message;
     $('loading').innerHTML =
       `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center;line-height:1.8">
         ERR: ${esc(msg)}<br>
-        <span style="color:var(--fg-dim);font-size:.75rem">check: docker compose logs web</span>
+        <span style="color:var(--fg-dim);font-size:.75rem">${t('err.hint')}</span>
       </p>`;
   } finally {
     clearTimeout(timer);
@@ -215,27 +421,25 @@ function renderAll(d) {
   counter($('v-ips'),         overview.unique_ips);
   counter($('v-downloads'),   overview.downloads);
 
-  $('m-auth').textContent     = `${overview.success_pct}% success rate`;
-  $('m-commands').textContent = `${overview.cmd_sessions} sessions with input`;
+  $('m-auth').textContent     = tf('meta.success_pct', overview.success_pct);
+  $('m-commands').textContent = tf('meta.cmd_sessions', overview.cmd_sessions);
 
   if (d.timeseries.length) {
     const labels  = d.timeseries.map(r => fmtTime(r.t, currentWindow));
-    const failed  = d.timeseries.map(r => r.failed);
-    const success = d.timeseries.map(r => r.successful);
     activeCharts['ts'] = new Chart($('chart-timeseries'), {
       type: 'line',
       data: {
         labels,
         datasets: [
           {
-            label: 'Failed',
-            data: failed,
+            label: t('legend.failed'),
+            data: d.timeseries.map(r => r.failed),
             borderColor: GBX.red, backgroundColor: GBX.red + '33',
             fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
           },
           {
-            label: 'Successful',
-            data: success,
+            label: t('legend.successful'),
+            data: d.timeseries.map(r => r.successful),
             borderColor: GBX.green, backgroundColor: GBX.green + '33',
             fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
           },
@@ -261,28 +465,31 @@ function renderAll(d) {
   }
 
   {
-    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dow = t('dow');
     const counts = new Array(7).fill(0);
     d.by_dow.forEach(r => { counts[r.dow] = Number(r.attempts); });
-    activeCharts['dow'] = barChart('chart-dow', days, counts, GBX.orange + 'cc');
+    activeCharts['dow'] = barChart('chart-dow', dow, counts, GBX.orange + 'cc');
   }
 
   if (d.top_usernames.length) {
-    const labels = d.top_usernames.map(r => r.username);
-    const values = d.top_usernames.map(r => Number(r.attempts));
-    activeCharts['users'] = hbarChart('chart-usernames', labels, values, GBX.aqua + 'cc');
+    activeCharts['users'] = hbarChart('chart-usernames',
+      d.top_usernames.map(r => r.username),
+      d.top_usernames.map(r => Number(r.attempts)),
+      GBX.aqua + 'cc');
   }
 
   if (d.top_passwords.length) {
-    const labels = d.top_passwords.map(r => r.password);
-    const values = d.top_passwords.map(r => Number(r.attempts));
-    activeCharts['pw'] = hbarChart('chart-passwords', labels, values, GBX.purple + 'cc');
+    activeCharts['pw'] = hbarChart('chart-passwords',
+      d.top_passwords.map(r => r.password),
+      d.top_passwords.map(r => Number(r.attempts)),
+      GBX.purple + 'cc');
   }
 
   if (d.top_urls.length) {
-    const labels = d.top_urls.map(r => r.url.replace(/^https?:\/\//, '').substring(0, 40));
-    const values = d.top_urls.map(r => Number(r.downloads));
-    activeCharts['urls'] = hbarChart('chart-urls', labels, values, GBX.yellow + 'cc');
+    activeCharts['urls'] = hbarChart('chart-urls',
+      d.top_urls.map(r => r.url.replace(/^https?:\/\//, '').substring(0, 40)),
+      d.top_urls.map(r => Number(r.downloads)),
+      GBX.yellow + 'cc');
   }
 
   fillTable('tbl-pairs', d.top_pairs, r =>
@@ -327,14 +534,16 @@ function renderAll(d) {
 async function loadWordlists() {
   $('wl-loading').hidden = false;
   $('wl-root').hidden    = true;
+  $('wl-loading').innerHTML = `<div class="spinner"></div><p>${t('loading.wordlists')}</p>`;
 
   try {
     const res  = await fetch('/api/wordlist');
     if (!res.ok) throw new Error(`server error ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    renderWordlists(data);
+    lastWlData     = data;
     wordlistsLoaded = true;
+    renderWordlists(data);
     $('wl-loading').hidden = true;
     $('wl-root').hidden    = false;
   } catch (err) {
@@ -357,17 +566,12 @@ function renderWordlists(data) {
     periodEl.textContent = fmtPeriod(info.oldest, info.newest);
     sizeEl.textContent   = info.gz_size || '—';
 
-    if (!info.preview || !info.preview.length) {
-      listEl.innerHTML = '<div class="wl-empty">no data collected yet</div>';
-    } else {
-      listEl.innerHTML = info.preview
-        .map(v => `<div class="wl-preview-entry">${esc(v)}</div>`)
-        .join('');
-    }
+    listEl.innerHTML = (!info.preview || !info.preview.length)
+      ? `<div class="wl-empty">${t('wl.empty')}</div>`
+      : info.preview.map(v => `<div class="wl-preview-entry">${esc(v)}</div>`).join('');
   }
 }
 
-// Download buttons
 document.addEventListener('click', e => {
   const btn = e.target.closest('.btn-download');
   if (!btn) return;
@@ -435,8 +639,12 @@ function fillTable(id, rows, rowHtml) {
   if (!tbl) return;
   const tbody = tbl.querySelector('tbody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--fg-dim);padding:20px">No data for this window</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--fg-dim);padding:20px">${t('tbl.nodata')}</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((r, i) => `<tr>${rowHtml({ ...r, _rank: i + 1 })}</tr>`).join('');
 }
+
+// ── Init ──────────────────────────────────────────────────────────────────
+// Apply stored language preference on page load
+if (currentLang !== 'en') applyLang(currentLang);

@@ -87,13 +87,13 @@ class Output(cowrie.core.output.Output):
         elif event["eventid"] == "cowrie.login.success":
             self.simpleQuery(
                 "INSERT INTO auth (session, success, username, password, timestamp) VALUES (%s, %s, %s, %s, TO_TIMESTAMP(%s))",
-                (event["session"], True, event["username"], event["password"], event["time"]),
+                (event["session"], True, event["username"], event.get("password", ""), event["time"]),
             )
 
         elif event["eventid"] == "cowrie.login.failed":
             self.simpleQuery(
                 "INSERT INTO auth (session, success, username, password, timestamp) VALUES (%s, %s, %s, %s, TO_TIMESTAMP(%s))",
-                (event["session"], False, event["username"], event["password"], event["time"]),
+                (event["session"], False, event["username"], event.get("password", ""), event["time"]),
             )
 
         elif event["eventid"] == "cowrie.session.params":

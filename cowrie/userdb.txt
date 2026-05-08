@@ -1,0 +1,16 @@
+# username:uid:password
+root:0:Passw0rd
+root:0:qwerty123
+root:0:P@ssw0rd
+root:0:iloveyou1
+root:0:Welcome1
+root:0:Abc123456
+root:0:dragon99
+root:0:master01
+root:0:monkey123
+root:0:sunshine1
+admin:0:Admin1234
+admin:0:changeme1
+admin:0:adm1n123
+ubuntu:0:Ubuntu123
+user:0:User1234

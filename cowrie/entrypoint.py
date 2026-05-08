@@ -4,6 +4,16 @@ import re
 
 # Fix ownership of mounted volumes so the cowrie user can write to them
 pw = pwd.getpwnam("cowrie")
+
+# Ensure required runtime directories exist (var/ is a bind-mount so they may be absent)
+for d in [
+    "/cowrie/cowrie-git/var/log/cowrie",
+    "/cowrie/cowrie-git/var/lib/cowrie",
+    "/cowrie/cowrie-git/var/lib/cowrie/tty",
+    "/cowrie/cowrie-git/var/lib/cowrie/downloads",
+]:
+    os.makedirs(d, exist_ok=True)
+
 for path in [
     "/cowrie/cowrie-git/var/log/cowrie",
     "/cowrie/cowrie-git/var/lib/cowrie",

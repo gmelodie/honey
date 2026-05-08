@@ -209,6 +209,20 @@ body { min-height: 100vh; }
 
 .last-updated { font-size: .68rem; color: var(--fg-dim); font-family: 'JetBrains Mono', monospace; }
 
+.lang-tabs {
+  display: flex; gap: 1px;
+  border: 1px solid var(--border); padding: 2px;
+}
+.lang-tab {
+  padding: 4px 8px; border: none;
+  background: none; color: var(--fg-muted);
+  font-size: .68rem; font-weight: 700; cursor: pointer;
+  transition: background .12s, color .12s;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
+}
+.lang-tab:hover { color: var(--fg); }
+.lang-tab.active { background: var(--c-green); color: var(--bg); }
+
 .icon-btn {
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   background: none; border: 1px solid var(--border);
