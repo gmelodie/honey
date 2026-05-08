@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS sensors (
     id SERIAL PRIMARY KEY,
-    ip VARCHAR(15)
+    ip VARCHAR(45)
 );
 
 CREATE TABLE IF NOT EXISTS clients (
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     starttime TIMESTAMP WITH TIME ZONE,
     endtime TIMESTAMP WITH TIME ZONE,
     sensor INTEGER REFERENCES sensors(id),
-    ip VARCHAR(15),
+    ip VARCHAR(45),
     termsize VARCHAR(7) DEFAULT '',
     client INTEGER REFERENCES clients(id)
 );
