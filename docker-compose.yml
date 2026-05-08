@@ -12,7 +12,7 @@ services:
       - PGDATA=/var/lib/postgresql/data
     entrypoint: ["/bin/bash", "/docker-entrypoint-custom.sh"]
     volumes:
-      - /mnt/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       - ./postgres/entrypoint.sh:/docker-entrypoint-custom.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' -q -t"]
@@ -33,28 +33,8 @@ services:
       - ./postgres/schema.sql:/schema.sql:ro
     restart: "no"
 
-  grafana:
-    image: grafana/grafana:11.5.1
-    container_name: grafana
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      postgres:
-        condition: service_healthy
-    # Grafana listens on port 47321 (set via GF_SERVER_HTTP_PORT)
-    env_file: .env
-    environment:
-      - GF_SERVER_HTTP_PORT=47321
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-      - GF_DATABASE_WAL=true
-      - GF_AUTH_LOGIN_MAXIMUM_INACTIVE_LIFETIME_DURATION=7d
-      - GF_AUTH_LOGIN_MAXIMUM_LIFETIME_DURATION=30d
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - grafana-data:/var/lib/grafana
-
   cowrie:
-    image: cowrie/cowrie:latest
+    build: ./cowrie
     container_name: cowrie
     restart: unless-stopped
     network_mode: host
@@ -62,39 +42,68 @@ services:
     depends_on:
       postgres-init:
         condition: service_completed_successfully
-    entrypoint: ["/cowrie/cowrie-env/bin/python3", "-c", "import subprocess,os,sys,re; subprocess.run([sys.executable,'-m','pip','install','psycopg2-binary','-q']); t=open('/tmp/cowrie.cfg.template').read(); c=re.sub(r'\\$\\{(\\w+)\\}',lambda m:os.environ.get(m.group(1),m.group(0)),t); open('/cowrie/cowrie-git/etc/cowrie.cfg','w').write(c); os.execv('/cowrie/cowrie-env/bin/twistd',['/cowrie/cowrie-env/bin/twistd','-n','cowrie'])"]
     volumes:
       - ./config/cowrie.cfg:/tmp/cowrie.cfg.template:ro
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
-  wordlists:
-    image: python:3.12-slim
-    container_name: wordlists
+  # Web honeypot — fake router admin panel served to unknown HTTP/HTTPS clients
+  honeypot-web:
+    build: ./honeypot-web
+    container_name: honeypot-web
     restart: unless-stopped
     network_mode: host
-    depends_on:
-      postgres:
-        condition: service_healthy
+    volumes:
+      - ./honeypot-web/logs:/var/log
+
+  # Stats dashboard — cowrie attack data from PostgreSQL, behind reCAPTCHA
+  web:
+    build: ./web
+    container_name: web
+    restart: unless-stopped
+    network_mode: host
     env_file: .env
     environment:
-      - POSTGRES_HOST=127.0.0.1
-      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST:-127.0.0.1}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - WORDLIST_DIR=/wordlists
+      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Nginx — routes port 80/443 by Host header
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      - TARGET_HOST=${TARGET_HOST}
     volumes:
-      - ./scripts/generate-wordlists.py:/usr/local/bin/generate-wordlists.py:ro
-      - ./wordlists:/wordlists
-    # Run once at startup, then every day at 03:00 UTC via crond
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        pip install psycopg2-binary -q
-        python /usr/local/bin/generate-wordlists.py
-        echo "0 3 * * * python /usr/local/bin/generate-wordlists.py >> /var/log/wordlists.log 2>&1" | crontab -
-        crond -f -d 8
+      - ./letsencrypt:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - web
+      - honeypot-web
+
+  # Certbot — automatic certificate renewal (runs every 12 h)
+  certbot:
+    image: certbot/certbot
+    network_mode: host
+    volumes:
+      - ./letsencrypt:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+      while :; do
+        certbot renew --webroot --webroot-path /var/www/certbot --quiet;
+        sleep 12h & wait $${!};
+      done"
 
 volumes:
-  grafana-data:
+  postgres-data:

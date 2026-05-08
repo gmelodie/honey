@@ -1,7 +1,10 @@
 CREATE TABLE IF NOT EXISTS sensors (
     id SERIAL PRIMARY KEY,
-    ip VARCHAR(15)
+    ip VARCHAR(45) UNIQUE
 );
+
+-- Pre-seed the sensor row so cowrie's SELECT hits it and avoids the broken INSERT path
+INSERT INTO sensors (ip) VALUES ('cowrie') ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS clients (
     id SERIAL PRIMARY KEY,
@@ -14,7 +17,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     starttime TIMESTAMP WITH TIME ZONE,
     endtime TIMESTAMP WITH TIME ZONE,
     sensor INTEGER REFERENCES sensors(id),
-    ip VARCHAR(15),
+    ip VARCHAR(45),
     termsize VARCHAR(7) DEFAULT '',
     client INTEGER REFERENCES clients(id)
 );

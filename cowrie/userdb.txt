@@ -1,0 +1,12 @@
+# username:uid:password
+# '*' accepts any password for that username
+root:0:*
+admin:0:*
+ubuntu:0:*
+user:0:*
+pi:0:*
+oracle:0:*
+guest:0:*
+test:0:*
+deploy:0:*
+git:0:*

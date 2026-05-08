@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>AutoPot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render={{ recaptcha_site_key or 'explicit' }}" async defer></script>
+</head>
+<body>
+
+<!-- ═══ CAPTCHA GATE ═══════════════════════════════════════════════════════ -->
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <div class="gate-bar">
+      <span class="gate-bar-dot"></span>
+      <span class="gate-bar-dot"></span>
+      <span class="gate-bar-dot"></span>
+      <span class="gate-bar-title" data-i18n="gate.bar">autopot — access control</span>
+    </div>
+    <div class="gate-body">
+      <p class="gate-prompt-line">
+        <span class="gate-prompt-sign">root@autopot:~$</span>
+        ./stats.sh --auth<span class="gate-blink">_</span>
+      </p>
+      <h1 class="gate-title">AUTOPOT</h1>
+      <p class="gate-subtitle" data-i18n="gate.subtitle">automated honeypot — ssh / telnet</p>
+      <p class="gate-desc" data-i18n="gate.desc">Verify you're human to access live attack data.</p>
+      <button id="enter-btn" class="btn-enter" disabled>
+        <span data-i18n="gate.btn">[ ENTER DASHBOARD ]</span>
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+      <p id="gate-error" class="gate-error" hidden></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ════════════════════════════════════════════════════════════════ -->
+<div id="app" class="app" hidden>
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-name">AutoPot</span>
+      <nav class="page-nav">
+        <button class="page-tab active" data-page="dashboard" data-i18n="nav.dashboard">Dashboard</button>
+        <button class="page-tab" data-page="wordlists" data-i18n="nav.wordlists">Wordlists</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div id="dashboard-controls" style="display:flex;align-items:center;gap:6px">
+        <div class="win-tabs" role="group" aria-label="Time window">
+          <button class="win-tab" data-w="1h">1h</button>
+          <button class="win-tab active" data-w="6h">6h</button>
+          <button class="win-tab" data-w="24h">24h</button>
+          <button class="win-tab" data-w="7d">7d</button>
+          <button class="win-tab" data-w="30d">30d</button>
+          <button class="win-tab" data-w="all" data-i18n="win.all">All</button>
+        </div>
+        <span id="last-updated" class="last-updated"></span>
+        <button id="refresh-btn" class="icon-btn" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+      <div class="lang-tabs">
+        <button class="lang-tab active" data-lang="en">EN</button>
+        <button class="lang-tab" data-lang="pt">PT</button>
+      </div>
+      <button id="theme-btn" class="icon-btn" title="Toggle theme">
+        <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+        </svg>
+        <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ═══ DASHBOARD PAGE ══════════════════════════════════════════════ -->
+    <div id="page-dashboard">
+
+      <div id="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p data-i18n="loading.stats">Loading statistics…</p>
+      </div>
+
+      <div id="stats-root" hidden>
+
+        <!-- ── Overview cards ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.overview">Overview</h2>
+          <div class="cards-grid">
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-blue)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 9l3 3-3 3"/><path d="M13 15h3"/><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.connections">Connections</p>
+              <p class="card-value" id="v-connections">—</p>
+              <p class="card-meta" data-i18n="card.connections.meta">distinct attacker sessions</p>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-red)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.auth">Auth Attempts</p>
+              <p class="card-value" id="v-auth">—</p>
+              <p class="card-meta" id="m-auth"></p>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-yellow)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.commands">Commands Run</p>
+              <p class="card-value" id="v-commands">—</p>
+              <p class="card-meta" id="m-commands"></p>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-orange)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.ips">Unique IPs</p>
+              <p class="card-value" id="v-ips">—</p>
+              <p class="card-meta" data-i18n="card.ips.meta">distinct source addresses</p>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-purple)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.downloads">File Downloads</p>
+              <p class="card-value" id="v-downloads">—</p>
+              <p class="card-meta" id="m-downloads"></p>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── Login timeseries ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.timeseries">Login Attempts Over Time</h2>
+          <div class="chart-card">
+            <div class="chart-body" style="height:180px">
+              <canvas id="chart-timeseries"></canvas>
+            </div>
+            <div class="legend-row" style="margin-top:10px">
+              <span class="legend-item">
+                <span class="legend-dot" style="background:var(--c-red)"></span>
+                <span data-i18n="legend.failed">Failed</span>
+              </span>
+              <span class="legend-item">
+                <span class="legend-dot" style="background:var(--c-green)"></span>
+                <span data-i18n="legend.successful">Successful</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Timing patterns ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.timing">Timing Patterns</h2>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3 class="chart-title" data-i18n="chart.by_hour">Attacks by Hour of Day</h3>
+              <div class="chart-body" style="height:200px"><canvas id="chart-hour"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title" data-i18n="chart.by_dow">Attacks by Day of Week</h3>
+              <div class="chart-body" style="height:200px"><canvas id="chart-dow"></canvas></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Top credentials ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.credentials">Top Credentials</h2>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3 class="chart-title" data-i18n="chart.usernames">Usernames</h3>
+              <div class="chart-body" style="height:260px"><canvas id="chart-usernames"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title" data-i18n="chart.passwords">Passwords</h3>
+              <div class="chart-body" style="height:260px"><canvas id="chart-passwords"></canvas></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Credential pairs ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.pairs">Top Credential Pairs</h2>
+          <div class="tbl-wrap">
+            <table class="data-tbl" id="tbl-pairs">
+              <thead><tr>
+                <th data-i18n="th.rank">#</th>
+                <th data-i18n="th.username">Username</th>
+                <th data-i18n="th.password">Password</th>
+                <th data-i18n="th.attempts">Attempts</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── SSH client versions ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.clients">SSH Client Versions</h2>
+          <div class="tbl-wrap">
+            <table class="data-tbl" id="tbl-clients">
+              <thead><tr>
+                <th data-i18n="th.rank">#</th>
+                <th data-i18n="th.client">Client String</th>
+                <th data-i18n="th.connections">Connections</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Downloads ── -->
+        <section class="section" id="section-downloads">
+          <h2 class="section-heading" data-i18n="section.downloads">Downloads</h2>
+          <div class="chart-card">
+            <h3 class="chart-title" data-i18n="chart.top_urls">Top Download URLs</h3>
+            <div class="chart-body" style="height:220px"><canvas id="chart-urls"></canvas></div>
+          </div>
+        </section>
+
+        <!-- ── Activity logs ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.logs">Activity Logs</h2>
+          <div class="tabs-bar">
+            <button class="log-tab active" data-tab="commands" data-i18n="tab.commands">Commands</button>
+            <button class="log-tab" data-tab="auth" data-i18n="tab.auth">Auth Log</button>
+            <button class="log-tab" data-tab="dl" data-i18n="tab.dl">Downloads</button>
+          </div>
+
+          <div id="tab-commands" class="log-panel">
+            <div class="tbl-wrap log-wrap">
+              <table class="data-tbl log-tbl" id="tbl-commands">
+                <thead><tr>
+                  <th data-i18n="th.time">Time</th>
+                  <th data-i18n="th.ip">IP</th>
+                  <th data-i18n="th.session">Session</th>
+                  <th data-i18n="th.command">Command</th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="tab-auth" class="log-panel" hidden>
+            <div class="tbl-wrap log-wrap">
+              <table class="data-tbl log-tbl" id="tbl-auth">
+                <thead><tr>
+                  <th data-i18n="th.time">Time</th>
+                  <th data-i18n="th.ip">IP</th>
+                  <th data-i18n="th.username">Username</th>
+                  <th data-i18n="th.password">Password</th>
+                  <th data-i18n="th.ok">OK</th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="tab-dl" class="log-panel" hidden>
+            <div class="tbl-wrap log-wrap">
+              <table class="data-tbl log-tbl" id="tbl-dl">
+                <thead><tr>
+                  <th data-i18n="th.time">Time</th>
+                  <th data-i18n="th.ip">IP</th>
+                  <th data-i18n="th.url">URL</th>
+                  <th data-i18n="th.sha">SHA-256</th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /stats-root -->
+    </div><!-- /page-dashboard -->
+
+    <!-- ═══ WORDLISTS PAGE ══════════════════════════════════════════════ -->
+    <div id="page-wordlists" hidden>
+
+      <div id="wl-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p data-i18n="loading.wordlists">Generating wordlists…</p>
+      </div>
+
+      <div id="wl-root" hidden>
+        <section class="section">
+          <h2 class="section-heading" data-i18n="wl.title">Generated Wordlists</h2>
+          <p style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--fg-dim);margin-bottom:14px" data-i18n="wl.desc">
+            Ranked by attack frequency — most-seen credentials first. Downloads are gzip-compressed plaintext.
+          </p>
+          <div class="tabs-bar" style="margin-bottom:16px">
+            <button class="log-tab active" data-period="daily"   data-i18n="wl.period.daily">Daily</button>
+            <button class="log-tab"        data-period="weekly"  data-i18n="wl.period.weekly">Weekly</button>
+            <button class="log-tab"        data-period="monthly" data-i18n="wl.period.monthly">Monthly</button>
+            <button class="log-tab"        data-period="all"     data-i18n="wl.period.all">All Time</button>
+          </div>
+          <div class="wl-grid">
+
+            <!-- Usernames -->
+            <div class="wl-card">
+              <div class="wl-card-header">
+                <div>
+                  <h3 class="wl-card-title" data-i18n="wl.usernames">Usernames</h3>
+                  <div class="wl-stats">
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.entries">entries</span>
+                      <span class="wl-stat-val" id="wl-count-usernames">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.period">period</span>
+                      <span class="wl-stat-val" id="wl-period-usernames">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.size">~size (gz)</span>
+                      <span class="wl-stat-val" id="wl-size-usernames">—</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-download" data-wtype="usernames">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  .txt.gz
+                </button>
+              </div>
+              <div class="wl-hash" id="wl-hash-usernames"></div>
+              <div class="wl-preview">
+                <div class="wl-preview-label" data-i18n="wl.preview">preview — top 5 by frequency</div>
+                <div class="wl-preview-list" id="wl-preview-usernames"></div>
+              </div>
+            </div>
+
+            <!-- Passwords -->
+            <div class="wl-card">
+              <div class="wl-card-header">
+                <div>
+                  <h3 class="wl-card-title" data-i18n="wl.passwords">Passwords</h3>
+                  <div class="wl-stats">
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.entries">entries</span>
+                      <span class="wl-stat-val" id="wl-count-passwords">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.period">period</span>
+                      <span class="wl-stat-val" id="wl-period-passwords">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.size">~size (gz)</span>
+                      <span class="wl-stat-val" id="wl-size-passwords">—</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-download" data-wtype="passwords">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  .txt.gz
+                </button>
+              </div>
+              <div class="wl-hash" id="wl-hash-passwords"></div>
+              <div class="wl-preview">
+                <div class="wl-preview-label" data-i18n="wl.preview">preview — top 5 by frequency</div>
+                <div class="wl-preview-list" id="wl-preview-passwords"></div>
+              </div>
+            </div>
+
+            <!-- Pairs -->
+            <div class="wl-card">
+              <div class="wl-card-header">
+                <div>
+                  <h3 class="wl-card-title" data-i18n="wl.pairs">Credential Pairs</h3>
+                  <div class="wl-stats">
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.entries">entries</span>
+                      <span class="wl-stat-val" id="wl-count-pairs">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.period">period</span>
+                      <span class="wl-stat-val" id="wl-period-pairs">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.size">~size (gz)</span>
+                      <span class="wl-stat-val" id="wl-size-pairs">—</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-download" data-wtype="pairs">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  .txt.gz
+                </button>
+              </div>
+              <div class="wl-hash" id="wl-hash-pairs"></div>
+              <div class="wl-preview">
+                <div class="wl-preview-label" data-i18n="wl.preview.pairs">preview — top 5 by frequency (user:pass format)</div>
+                <div class="wl-preview-list" id="wl-preview-pairs"></div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div><!-- /wl-root -->
+    </div><!-- /page-wordlists -->
+
+  </main>
+
+  <footer class="footer">
+    autopot &nbsp;//&nbsp; protected by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">reCAPTCHA</a> &nbsp;·&nbsp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">privacy</a> &amp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">terms</a>
+  </footer>
+
+</div><!-- /app -->
+
+<script>window.__RC_SITE_KEY__ = {{ recaptcha_site_key | tojson }};</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
