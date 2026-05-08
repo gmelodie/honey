@@ -91,7 +91,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

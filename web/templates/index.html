@@ -145,15 +145,6 @@
             <p class="card-meta" id="m-downloads"></p>
           </div>
 
-          <div class="stat-card">
-            <div class="card-glyph" style="--clr:var(--c-green)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <p class="card-label">Malware Hashes</p>
-            <p class="card-value" id="v-malware">—</p>
-            <p class="card-meta">unique SHA-256</p>
-          </div>
-
         </div>
       </section>
 
@@ -225,21 +216,10 @@
 
       <!-- ── Downloads ── -->
       <section class="section" id="section-downloads">
-        <h2 class="section-heading">Downloads &amp; Malware</h2>
-        <div class="charts-row">
-          <div class="chart-card">
-            <h3 class="chart-title">Top Download URLs</h3>
-            <div class="chart-body" style="height:220px"><canvas id="chart-urls"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3 class="chart-title">Malware Hashes</h3>
-            <div class="tbl-wrap" style="max-height:250px;overflow-y:auto">
-              <table class="data-tbl" id="tbl-malware">
-                <thead><tr><th>Filename</th><th>SHA-256</th><th>Seen</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
+        <h2 class="section-heading">Downloads</h2>
+        <div class="chart-card">
+          <h3 class="chart-title">Top Download URLs</h3>
+          <div class="chart-body" style="height:220px"><canvas id="chart-urls"></canvas></div>
         </div>
       </section>
 
@@ -290,36 +270,6 @@
 
 </div><!-- /app -->
 
-<!-- ═══ HASH LOOKUP MODAL ═══════════════════════════════════════════════ -->
-<div id="lookup-modal" class="modal-overlay" hidden aria-modal="true" role="dialog">
-  <div class="modal-card">
-    <div class="modal-header">
-      <div class="modal-title-row">
-        <div class="modal-icon" id="modal-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <div>
-          <h2 class="modal-title" id="modal-title">Hash Analysis</h2>
-          <p class="modal-hash" id="modal-hash"></p>
-        </div>
-      </div>
-      <button id="modal-close" class="icon-btn modal-close-btn" title="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div id="modal-body" class="modal-body">
-      <div class="modal-loading">
-        <div class="spinner"></div>
-        <p>Querying threat intelligence…</p>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>window.__RC_SITE_KEY__ = {{ recaptcha_site_key | tojson }};</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>

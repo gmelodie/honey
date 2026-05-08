@@ -1,8 +1,6 @@
 import os
-import re
 import requests
 import psycopg2
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import psycopg2.extras
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta, timezone
@@ -117,12 +115,6 @@ def stats():
             dl_count = cur.fetchone()["v"]
 
             cur.execute(
-                f"SELECT count(DISTINCT d.shasum) AS v FROM downloads d "
-                f"WHERE {dc} AND d.shasum IS NOT NULL AND d.shasum != ''", dp
-            )
-            malware_hashes = cur.fetchone()["v"]
-
-            cur.execute(
                 f"SELECT round(sum(CASE WHEN a.success THEN 1 ELSE 0 END)::numeric "
                 f"/ NULLIF(count(*), 0) * 100, 2) AS v FROM auth a WHERE {ac}", ap
             )
@@ -205,15 +197,6 @@ def stats():
             """, dp)
             top_urls = _rows(cur)
 
-            cur.execute(f"""
-                SELECT substring(d.url FROM '[^/]+$') AS filename,
-                       d.shasum, count(*) AS downloads
-                FROM downloads d
-                WHERE {dc} AND d.shasum IS NOT NULL AND d.shasum != ''
-                GROUP BY filename, d.shasum ORDER BY downloads DESC LIMIT 20
-            """, dp)
-            malware_files = _rows(cur)
-
             # ── Activity logs ─────────────────────────────────────────────
             cur.execute(f"""
                 SELECT i.timestamp AS time, s.ip, i.session, i.input
@@ -263,7 +246,6 @@ def stats():
                 "commands":       int(commands),
                 "unique_ips":     int(unique_ips),
                 "downloads":      int(dl_count),
-                "malware_hashes": int(malware_hashes),
                 "success_pct":    success_pct,
             },
             "top_usernames": top_usernames,
@@ -274,7 +256,6 @@ def stats():
             "by_dow":         by_dow,
             "ssh_clients":    ssh_clients,
             "top_urls":       top_urls,
-            "malware_files":  malware_files,
             "cmd_log":        cmd_log,
             "auth_log":       auth_log,
             "dl_log":         dl_log,
@@ -285,97 +266,3 @@ def stats():
         conn.close()
 
 
-_SHA256_RE = re.compile(r'^[0-9a-f]{64}$', re.I)
-
-VT_KEY = os.environ.get("VIRUSTOTAL_API_KEY", "")
-
-
-def _query_malwarebazaar(sha256):
-    try:
-        r = requests.post(
-            "https://mb-api.abuse.ch/api/v1/",
-            data={"query": "get_info", "hash": sha256},
-            headers={"User-Agent": "honeypot-stats/1.0"},
-            timeout=12,
-        )
-        mb = r.json()
-        if mb.get("query_status") == "ok" and mb.get("data"):
-            d = mb["data"][0]
-            return {
-                "found":          True,
-                "file_name":      d.get("file_name"),
-                "file_type":      d.get("file_type"),
-                "file_type_mime": d.get("file_type_mime"),
-                "file_size":      d.get("file_size"),
-                "signature":      d.get("signature"),
-                "tags":           d.get("tags") or [],
-                "first_seen":     d.get("first_seen"),
-                "last_seen":      d.get("last_seen"),
-                "reporter":       d.get("reporter"),
-                "md5":            d.get("md5_hash"),
-                "sha1":           d.get("sha1_hash"),
-                "downloads":      (d.get("intelligence") or {}).get("downloads"),
-                "uploads":        (d.get("intelligence") or {}).get("uploads"),
-                "clamav":         (d.get("intelligence") or {}).get("clamav"),
-                "delivery":       d.get("delivery_method"),
-                "origin":         d.get("origin_country"),
-                "url":            f"https://bazaar.abuse.ch/sample/{sha256.lower()}/",
-            }
-        return {"found": False}
-    except Exception as e:
-        return {"found": False, "error": str(e)}
-
-
-def _query_virustotal(sha256):
-    try:
-        r = requests.get(
-            f"https://www.virustotal.com/api/v3/files/{sha256}",
-            headers={"x-apikey": VT_KEY, "Accept": "application/json"},
-            timeout=12,
-        )
-        if r.status_code == 200:
-            attr  = r.json()["data"]["attributes"]
-            stats = attr.get("last_analysis_stats", {})
-            malicious  = stats.get("malicious", 0)
-            suspicious = stats.get("suspicious", 0)
-            undetected = stats.get("undetected", 0)
-            harmless   = stats.get("harmless", 0)
-            return {
-                "found":      True,
-                "malicious":  malicious,
-                "suspicious": suspicious,
-                "undetected": undetected,
-                "total":      malicious + suspicious + undetected + harmless,
-                "name":       attr.get("meaningful_name"),
-                "type":       attr.get("type_description"),
-                "names":      (attr.get("names") or [])[:8],
-                "tags":       attr.get("tags") or [],
-                "first_seen": attr.get("first_submission_date"),
-                "last_seen":  attr.get("last_submission_date"),
-                "size":       attr.get("size"),
-                "url":        f"https://www.virustotal.com/gui/file/{sha256.lower()}",
-            }
-        if r.status_code == 404:
-            return {"found": False}
-        return {"found": False, "error": f"HTTP {r.status_code}"}
-    except Exception as e:
-        return {"found": False, "error": str(e)}
-
-
-@app.route("/api/lookup/<sha256>")
-def lookup(sha256):
-    if not _SHA256_RE.match(sha256):
-        return jsonify({"error": "invalid hash"}), 400
-
-    result = {"sha256": sha256.lower()}
-
-    tasks = {"malwarebazaar": (_query_malwarebazaar, sha256)}
-    if VT_KEY:
-        tasks["virustotal"] = (_query_virustotal, sha256)
-
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        futures = {pool.submit(fn, arg): key for key, (fn, arg) in tasks.items()}
-        for future in as_completed(futures):
-            result[futures[future]] = future.result()
-
-    return jsonify(result)
