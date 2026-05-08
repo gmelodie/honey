@@ -16,7 +16,7 @@ done
 # Sync the password from the environment on every start.
 # Uses the local unix socket (trust auth) so it works even when the
 # TCP password is stale (e.g. after the user changes POSTGRES_PASSWORD in .env).
-psql -U postgres \
+psql -U "$POSTGRES_USER" \
     -c "ALTER ROLE \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';" \
     >/dev/null
 

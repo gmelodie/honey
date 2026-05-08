@@ -12,7 +12,7 @@ services:
       - PGDATA=/var/lib/postgresql/data
     entrypoint: ["/bin/bash", "/docker-entrypoint-custom.sh"]
     volumes:
-      - /mnt/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       - ./postgres/entrypoint.sh:/docker-entrypoint-custom.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' -q -t"]
@@ -156,4 +156,5 @@ services:
         crond -f -d 8
 
 volumes:
+  postgres-data:
   grafana-data:
