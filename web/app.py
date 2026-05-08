@@ -313,9 +313,18 @@ def wordlist_meta():
             cur.execute(f"""
                 SELECT username FROM auth
                 WHERE username IS NOT NULL AND username != '' AND {wc}
-                GROUP BY username ORDER BY COUNT(*) DESC LIMIT 20
+                GROUP BY username ORDER BY COUNT(*) DESC, username ASC LIMIT 5
             """, wp)
             u_preview = [r["username"] for r in cur.fetchall()]
+            cur.execute(f"""
+                SELECT encode(sha256(coalesce(
+                    string_agg(username, E'\\n' ORDER BY cnt DESC, username ASC), ''
+                )::bytea), 'hex') AS hash
+                FROM (SELECT username, COUNT(*) AS cnt FROM auth
+                      WHERE username IS NOT NULL AND username != '' AND {wc}
+                      GROUP BY username) t
+            """, wp)
+            u_hash = cur.fetchone()["hash"]
 
             cur.execute(f"""
                 SELECT COUNT(DISTINCT password) AS total,
@@ -326,9 +335,18 @@ def wordlist_meta():
             cur.execute(f"""
                 SELECT password FROM auth
                 WHERE password IS NOT NULL AND password != '' AND {wc}
-                GROUP BY password ORDER BY COUNT(*) DESC LIMIT 20
+                GROUP BY password ORDER BY COUNT(*) DESC, password ASC LIMIT 5
             """, wp)
             p_preview = [r["password"] for r in cur.fetchall()]
+            cur.execute(f"""
+                SELECT encode(sha256(coalesce(
+                    string_agg(password, E'\\n' ORDER BY cnt DESC, password ASC), ''
+                )::bytea), 'hex') AS hash
+                FROM (SELECT password, COUNT(*) AS cnt FROM auth
+                      WHERE password IS NOT NULL AND password != '' AND {wc}
+                      GROUP BY password) t
+            """, wp)
+            p_hash = cur.fetchone()["hash"]
 
             cur.execute(f"""
                 SELECT COUNT(DISTINCT (username, password)) AS total,
@@ -339,27 +357,38 @@ def wordlist_meta():
             cur.execute(f"""
                 SELECT username, password FROM auth
                 WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
-                GROUP BY username, password ORDER BY COUNT(*) DESC LIMIT 20
+                GROUP BY username, password ORDER BY COUNT(*) DESC, username ASC, password ASC LIMIT 5
             """, wp)
             pa_preview = [f"{r['username']}:{r['password']}" for r in cur.fetchall()]
+            cur.execute(f"""
+                SELECT encode(sha256(coalesce(
+                    string_agg(username || ':' || password, E'\\n'
+                               ORDER BY cnt DESC, username ASC, password ASC), ''
+                )::bytea), 'hex') AS hash
+                FROM (SELECT username, password, COUNT(*) AS cnt FROM auth
+                      WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
+                      GROUP BY username, password) t
+            """, wp)
+            pa_hash = cur.fetchone()["hash"]
 
-        def stats(row, preview):
+        def stats(row, preview, sha256):
             total = int(row["total"])
             avg   = int(row.get("avg_len") or 0)
             raw   = total * (avg + 1)
             return {
-                "total":    total,
-                "oldest":   row["oldest"].isoformat() if row.get("oldest") else None,
-                "newest":   row["newest"].isoformat() if row.get("newest") else None,
-                "gz_size":  _fmt_bytes(int(raw * 0.35)),
-                "preview":  preview,
+                "total":   total,
+                "oldest":  row["oldest"].isoformat() if row.get("oldest") else None,
+                "newest":  row["newest"].isoformat() if row.get("newest") else None,
+                "gz_size": _fmt_bytes(int(raw * 0.35)),
+                "sha256":  sha256,
+                "preview": preview,
             }
 
         return jsonify({
             "period":    period,
-            "usernames": stats(u, u_preview),
-            "passwords": stats({**p, "oldest": u["oldest"], "newest": u["newest"]}, p_preview),
-            "pairs":     stats({**pa, "oldest": u["oldest"], "newest": u["newest"]}, pa_preview),
+            "usernames": stats(u, u_preview, u_hash),
+            "passwords": stats({**p, "oldest": u["oldest"], "newest": u["newest"]}, p_preview, p_hash),
+            "pairs":     stats({**pa, "oldest": u["oldest"], "newest": u["newest"]}, pa_preview, pa_hash),
         })
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
@@ -384,21 +413,21 @@ def wordlist_download(wtype):
                 cur.execute(f"""
                     SELECT username FROM auth
                     WHERE username IS NOT NULL AND username != '' AND {wc}
-                    GROUP BY username ORDER BY COUNT(*) DESC
+                    GROUP BY username ORDER BY COUNT(*) DESC, username ASC
                 """, wp)
                 lines = [r[0] for r in cur.fetchall()]
             elif wtype == "passwords":
                 cur.execute(f"""
                     SELECT password FROM auth
                     WHERE password IS NOT NULL AND password != '' AND {wc}
-                    GROUP BY password ORDER BY COUNT(*) DESC
+                    GROUP BY password ORDER BY COUNT(*) DESC, password ASC
                 """, wp)
                 lines = [r[0] for r in cur.fetchall()]
             else:
                 cur.execute(f"""
                     SELECT username, password FROM auth
                     WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
-                    GROUP BY username, password ORDER BY COUNT(*) DESC
+                    GROUP BY username, password ORDER BY COUNT(*) DESC, username ASC, password ASC
                 """, wp)
                 lines = [f"{r[0]}:{r[1]}" for r in cur.fetchall()]
 

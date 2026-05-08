@@ -77,8 +77,8 @@ const STRINGS = {
     'wl.entries':       'entries',
     'wl.period':        'period',
     'wl.size':          '~size (gz)',
-    'wl.preview':       'preview — top 20 by frequency',
-    'wl.preview.pairs': 'preview — top 20 by frequency (user:pass format)',
+    'wl.preview':       'preview — top 5 by frequency',
+    'wl.preview.pairs': 'preview — top 5 by frequency (user:pass format)',
     'wl.empty':         'no data collected yet',
 
     'meta.success_pct':  n => `${n}% success rate`,
