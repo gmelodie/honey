@@ -15,33 +15,29 @@
 
 <!-- ═══ CAPTCHA GATE ═══════════════════════════════════════════════════════ -->
 <div id="gate" class="gate">
-  <div class="gate-orbs" aria-hidden="true">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <div class="orb orb-4"></div>
-    <div class="orb orb-5"></div>
-  </div>
   <div class="gate-card">
-    <div class="gate-header">
-      <div class="gate-logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-      </div>
-      <div>
-        <h1 class="gate-title">Honeypot Stats</h1>
-        <p class="gate-subtitle">SSH / Telnet attack intelligence</p>
-      </div>
+    <div class="gate-bar">
+      <span class="gate-bar-dot"></span>
+      <span class="gate-bar-dot"></span>
+      <span class="gate-bar-dot"></span>
+      <span class="gate-bar-title">honeypot-stats — access control</span>
     </div>
-    <p class="gate-desc">Verify you're human to access live attack statistics.</p>
-    <button id="enter-btn" class="btn-enter" disabled>
-      <span>Enter Dashboard</span>
-      <svg viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-      </svg>
-    </button>
-    <p id="gate-error" class="gate-error" hidden></p>
+    <div class="gate-body">
+      <p class="gate-prompt-line">
+        <span class="gate-prompt-sign">root@honeypot:~$</span>
+        ./stats.sh --auth<span class="gate-blink">_</span>
+      </p>
+      <h1 class="gate-title">HONEYPOT STATS</h1>
+      <p class="gate-subtitle">ssh / telnet attack intelligence</p>
+      <p class="gate-desc">Verify you're human to access live attack data.</p>
+      <button id="enter-btn" class="btn-enter" disabled>
+        <span>[ ENTER DASHBOARD ]</span>
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+      <p id="gate-error" class="gate-error" hidden></p>
+    </div>
   </div>
 </div>
 
@@ -264,7 +260,7 @@
   </main>
 
   <footer class="footer">
-    <span>Honeypot Stats &nbsp;·&nbsp; Protected by reCAPTCHA</span>
+    honeypot-stats &nbsp;//&nbsp; protected by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">reCAPTCHA</a> &nbsp;·&nbsp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">privacy</a> &amp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">terms</a>
   </footer>
 
 </div><!-- /app -->

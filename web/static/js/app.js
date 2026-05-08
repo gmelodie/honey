@@ -1,20 +1,20 @@
 'use strict';
 
-// ── Gruvbox palette ───────────────────────────────────────────────────────
+// ── Dracula palette ───────────────────────────────────────────────────────
 const GBX = {
-  red:    '#fb4934', dred:   '#cc241d',
-  green:  '#b8bb26', dgrn:   '#98971a',
-  yellow: '#fabd2f', dyell:  '#d79921',
-  blue:   '#83a598', dblue:  '#458588',
-  purple: '#d3869b', dpurp:  '#b16286',
-  aqua:   '#8ec07c', daqua:  '#689d6a',
-  orange: '#fe8019', dorg:   '#d65d0e',
-  gray:   '#a89984',
+  red:    '#ff5555',
+  green:  '#50fa7b',
+  yellow: '#f1fa8c',
+  blue:   '#6272a4',
+  purple: '#bd93f9',
+  aqua:   '#8be9fd',
+  orange: '#ffb86c',
+  gray:   '#6272a4',
 };
 
 const PALETTE = [
-  GBX.blue, GBX.green, GBX.yellow, GBX.red,
-  GBX.aqua, GBX.orange, GBX.purple, GBX.gray,
+  GBX.aqua, GBX.green, GBX.yellow, GBX.red,
+  GBX.purple, GBX.orange, GBX.blue, GBX.gray,
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -44,12 +44,12 @@ function fmtTs(iso) {
 }
 
 function fgColor() {
-  return document.documentElement.dataset.theme === 'light' ? '#504945' : '#a89984';
+  return document.documentElement.dataset.theme === 'light' ? '#555' : '#7a8599';
 }
 
 function gridColor() {
   return document.documentElement.dataset.theme === 'light'
-    ? 'rgba(100,90,80,.15)' : 'rgba(128,128,128,.1)';
+    ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.05)';
 }
 
 // ── Theme ─────────────────────────────────────────────────────────────────
@@ -154,9 +154,13 @@ document.querySelectorAll('.log-tab').forEach(btn => {
 async function loadStats() {
   $('loading').hidden    = false;
   $('stats-root').hidden = true;
+  $('loading').innerHTML = '<div class="spinner"></div><p>loading statistics…</p>';
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
-    const res  = await fetch(`/api/stats?window=${currentWindow}`);
+    const res  = await fetch(`/api/stats?window=${currentWindow}`, { signal: controller.signal });
+    if (!res.ok) throw new Error(`server error ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     destroyCharts();
@@ -165,8 +169,14 @@ async function loadStats() {
     $('stats-root').hidden = false;
     $('last-updated').textContent = new Date().toLocaleTimeString();
   } catch (err) {
+    const msg = err.name === 'AbortError' ? 'request timed out — is the server running?' : err.message;
     $('loading').innerHTML =
-      `<p style="color:var(--c-red);font-family:monospace">Error: ${esc(err.message)}</p>`;
+      `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center;line-height:1.8">
+        ERR: ${esc(msg)}<br>
+        <span style="color:var(--fg-dim);font-size:.75rem">check: docker compose logs web</span>
+      </p>`;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
