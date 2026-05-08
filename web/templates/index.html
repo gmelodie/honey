@@ -310,9 +310,15 @@
       <div id="wl-root" hidden>
         <section class="section">
           <h2 class="section-heading" data-i18n="wl.title">Generated Wordlists</h2>
-          <p style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--fg-dim);margin-bottom:18px" data-i18n="wl.desc">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--fg-dim);margin-bottom:14px" data-i18n="wl.desc">
             Ranked by attack frequency — most-seen credentials first. Downloads are gzip-compressed plaintext.
           </p>
+          <div class="tabs-bar" style="margin-bottom:16px">
+            <button class="log-tab active" data-period="daily"   data-i18n="wl.period.daily">Daily</button>
+            <button class="log-tab"        data-period="weekly"  data-i18n="wl.period.weekly">Weekly</button>
+            <button class="log-tab"        data-period="monthly" data-i18n="wl.period.monthly">Monthly</button>
+            <button class="log-tab"        data-period="all"     data-i18n="wl.period.all">All Time</button>
+          </div>
           <div class="wl-grid">
 
             <!-- Usernames -->

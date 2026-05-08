@@ -278,66 +278,85 @@ def _fmt_bytes(n):
     return f"{n:.1f} GB"
 
 
+WL_PERIODS = {
+    "daily":   timedelta(days=1),
+    "weekly":  timedelta(days=7),
+    "monthly": timedelta(days=30),
+    "all":     None,
+}
+
+
+def _wl_cond(since):
+    if since is None:
+        return "TRUE", ()
+    return "timestamp >= %s", (since,)
+
+
 @app.route("/api/wordlist")
 def wordlist_meta():
+    period = request.args.get("period", "all")
+    if period not in WL_PERIODS:
+        period = "all"
+    since = None if WL_PERIODS[period] is None else datetime.now(timezone.utc) - WL_PERIODS[period]
+    wc, wp = _wl_cond(since)
+
     conn = _conn()
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""
-                SELECT COUNT(DISTINCT username)      AS total,
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT username) AS total,
                        COALESCE(AVG(LENGTH(username))::int, 0) AS avg_len,
                        MIN(timestamp) AS oldest, MAX(timestamp) AS newest
-                FROM auth WHERE username IS NOT NULL AND username != ''
-            """)
+                FROM auth WHERE username IS NOT NULL AND username != '' AND {wc}
+            """, wp)
             u = cur.fetchone()
-            cur.execute("""
+            cur.execute(f"""
                 SELECT username FROM auth
-                WHERE username IS NOT NULL AND username != ''
+                WHERE username IS NOT NULL AND username != '' AND {wc}
                 GROUP BY username ORDER BY COUNT(*) DESC LIMIT 20
-            """)
+            """, wp)
             u_preview = [r["username"] for r in cur.fetchall()]
 
-            cur.execute("""
-                SELECT COUNT(DISTINCT password)      AS total,
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT password) AS total,
                        COALESCE(AVG(LENGTH(password))::int, 0) AS avg_len
-                FROM auth WHERE password IS NOT NULL AND password != ''
-            """)
+                FROM auth WHERE password IS NOT NULL AND password != '' AND {wc}
+            """, wp)
             p = cur.fetchone()
-            cur.execute("""
+            cur.execute(f"""
                 SELECT password FROM auth
-                WHERE password IS NOT NULL AND password != ''
+                WHERE password IS NOT NULL AND password != '' AND {wc}
                 GROUP BY password ORDER BY COUNT(*) DESC LIMIT 20
-            """)
+            """, wp)
             p_preview = [r["password"] for r in cur.fetchall()]
 
-            cur.execute("""
+            cur.execute(f"""
                 SELECT COUNT(DISTINCT (username, password)) AS total,
                        COALESCE(AVG(LENGTH(username) + LENGTH(password) + 1)::int, 0) AS avg_len
-                FROM auth WHERE username IS NOT NULL AND password IS NOT NULL
-            """)
+                FROM auth WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
+            """, wp)
             pa = cur.fetchone()
-            cur.execute("""
+            cur.execute(f"""
                 SELECT username, password FROM auth
-                WHERE username IS NOT NULL AND password IS NOT NULL
+                WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
                 GROUP BY username, password ORDER BY COUNT(*) DESC LIMIT 20
-            """)
+            """, wp)
             pa_preview = [f"{r['username']}:{r['password']}" for r in cur.fetchall()]
 
-        def stats(row, preview, extra_avg=None):
+        def stats(row, preview):
             total = int(row["total"])
-            avg = int(extra_avg or row.get("avg_len") or 0)
-            raw = total * (avg + 1)
-            gz  = int(raw * 0.35)
+            avg   = int(row.get("avg_len") or 0)
+            raw   = total * (avg + 1)
             return {
-                "total":   total,
-                "oldest":  row["oldest"].isoformat() if row.get("oldest") else None,
-                "newest":  row["newest"].isoformat() if row.get("newest") else None,
-                "raw_size": _fmt_bytes(raw),
-                "gz_size":  _fmt_bytes(gz),
-                "preview": preview,
+                "total":    total,
+                "oldest":   row["oldest"].isoformat() if row.get("oldest") else None,
+                "newest":   row["newest"].isoformat() if row.get("newest") else None,
+                "gz_size":  _fmt_bytes(int(raw * 0.35)),
+                "preview":  preview,
             }
 
         return jsonify({
+            "period":    period,
             "usernames": stats(u, u_preview),
             "passwords": stats({**p, "oldest": u["oldest"], "newest": u["newest"]}, p_preview),
             "pairs":     stats({**pa, "oldest": u["oldest"], "newest": u["newest"]}, pa_preview),
@@ -352,29 +371,35 @@ def wordlist_meta():
 def wordlist_download(wtype):
     if wtype not in ("usernames", "passwords", "pairs"):
         return jsonify({"error": "invalid type"}), 400
+    period = request.args.get("period", "all")
+    if period not in WL_PERIODS:
+        period = "all"
+    since = None if WL_PERIODS[period] is None else datetime.now(timezone.utc) - WL_PERIODS[period]
+    wc, wp = _wl_cond(since)
+
     conn = _conn()
     try:
         with conn.cursor() as cur:
             if wtype == "usernames":
-                cur.execute("""
+                cur.execute(f"""
                     SELECT username FROM auth
-                    WHERE username IS NOT NULL AND username != ''
+                    WHERE username IS NOT NULL AND username != '' AND {wc}
                     GROUP BY username ORDER BY COUNT(*) DESC
-                """)
+                """, wp)
                 lines = [r[0] for r in cur.fetchall()]
             elif wtype == "passwords":
-                cur.execute("""
+                cur.execute(f"""
                     SELECT password FROM auth
-                    WHERE password IS NOT NULL AND password != ''
+                    WHERE password IS NOT NULL AND password != '' AND {wc}
                     GROUP BY password ORDER BY COUNT(*) DESC
-                """)
+                """, wp)
                 lines = [r[0] for r in cur.fetchall()]
             else:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT username, password FROM auth
-                    WHERE username IS NOT NULL AND password IS NOT NULL
+                    WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
                     GROUP BY username, password ORDER BY COUNT(*) DESC
-                """)
+                """, wp)
                 lines = [f"{r[0]}:{r[1]}" for r in cur.fetchall()]
 
         buf = io.BytesIO()
@@ -385,7 +410,7 @@ def wordlist_download(wtype):
         return Response(
             buf.read(),
             mimetype="application/gzip",
-            headers={"Content-Disposition": f"attachment; filename=autopot_{wtype}.txt.gz"},
+            headers={"Content-Disposition": f"attachment; filename=autopot_{period}_{wtype}.txt.gz"},
         )
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500

@@ -67,6 +67,10 @@ const STRINGS = {
 
     'wl.title':         'Generated Wordlists',
     'wl.desc':          'Ranked by attack frequency — most-seen credentials first. Downloads are gzip-compressed plaintext.',
+    'wl.period.daily':   'Daily',
+    'wl.period.weekly':  'Weekly',
+    'wl.period.monthly': 'Monthly',
+    'wl.period.all':     'All Time',
     'wl.usernames':     'Usernames',
     'wl.passwords':     'Passwords',
     'wl.pairs':         'Credential Pairs',
@@ -148,6 +152,10 @@ const STRINGS = {
 
     'wl.title':         'Wordlists Geradas',
     'wl.desc':          'Ordenadas por frequência de ataque — credenciais mais vistas primeiro. Os downloads são texto comprimido com gzip.',
+    'wl.period.daily':   'Diário',
+    'wl.period.weekly':  'Semanal',
+    'wl.period.monthly': 'Mensal',
+    'wl.period.all':     'Tudo',
     'wl.usernames':     'Usuários',
     'wl.passwords':     'Senhas',
     'wl.pairs':         'Pares de Credenciais',
@@ -531,17 +539,28 @@ function renderAll(d) {
 }
 
 // ── Wordlists ─────────────────────────────────────────────────────────────
+let currentPeriod = 'daily';
+
+document.querySelectorAll('[data-period]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    loadWordlists();
+  });
+});
+
 async function loadWordlists() {
   $('wl-loading').hidden = false;
   $('wl-root').hidden    = true;
   $('wl-loading').innerHTML = `<div class="spinner"></div><p>${t('loading.wordlists')}</p>`;
 
   try {
-    const res  = await fetch('/api/wordlist');
+    const res  = await fetch(`/api/wordlist?period=${currentPeriod}`);
     if (!res.ok) throw new Error(`server error ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    lastWlData     = data;
+    lastWlData      = data;
     wordlistsLoaded = true;
     renderWordlists(data);
     $('wl-loading').hidden = true;
@@ -579,8 +598,8 @@ document.addEventListener('click', e => {
   if (!wtype) return;
   btn.disabled = true;
   const a = document.createElement('a');
-  a.href = `/api/wordlist/${wtype}/download`;
-  a.download = `autopot_${wtype}.txt.gz`;
+  a.href = `/api/wordlist/${wtype}/download?period=${currentPeriod}`;
+  a.download = `autopot_${currentPeriod}_${wtype}.txt.gz`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
