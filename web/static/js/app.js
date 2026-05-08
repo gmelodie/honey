@@ -74,8 +74,8 @@ $('theme-btn').addEventListener('click', () => {
 });
 
 function syncThemeIcon(t) {
-  $('icon-moon').hidden = t !== 'dark';
-  $('icon-sun').hidden  = t !== 'light';
+  $('icon-sun').style.display  = t === 'dark'  ? '' : 'none';
+  $('icon-moon').style.display = t === 'light' ? '' : 'none';
 }
 
 // ── reCAPTCHA v3 ──────────────────────────────────────────────────────────
