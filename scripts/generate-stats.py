@@ -89,6 +89,12 @@ def compute(conn, window):
         cur.execute(f"SELECT count(DISTINCT a.password) AS v FROM auth a WHERE {ac}", ap)
         unique_passwords = int(cur.fetchone()["v"])
 
+        cur.execute(f"SELECT count(DISTINCT a.username) AS v FROM auth a WHERE {ac}", ap)
+        unique_usernames = int(cur.fetchone()["v"])
+
+        cur.execute(f"SELECT count(DISTINCT d.shasum) AS v FROM downloads d WHERE {dc} AND d.shasum IS NOT NULL", dp)
+        unique_malware_hashes = int(cur.fetchone()["v"])
+
         cur.execute(
             f"SELECT round(sum(CASE WHEN a.success THEN 1 ELSE 0 END)::numeric "
             f"/ NULLIF(count(*), 0) * 100, 2) AS v FROM auth a WHERE {ac}", ap
@@ -227,7 +233,9 @@ def compute(conn, window):
             "unique_ips":      unique_ips,
             "downloads":       dl_count,
             "success_pct":     success_pct,
-            "unique_passwords": unique_passwords,
+            "unique_passwords":     unique_passwords,
+            "unique_usernames":     unique_usernames,
+            "unique_malware_hashes": unique_malware_hashes,
         },
         "top_usernames":   top_usernames,
         "top_passwords":   top_passwords,

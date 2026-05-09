@@ -23,6 +23,10 @@ const STRINGS = {
     'card.downloads':             'File Downloads',
     'card.unique_passwords':      'Unique Passwords',
     'card.unique_passwords.meta': 'distinct passwords collected',
+    'card.unique_usernames':      'Unique Usernames',
+    'card.unique_usernames.meta': 'distinct usernames collected',
+    'card.malware_hashes':        'Malware Hashes',
+    'card.malware_hashes.meta':   'distinct file hashes collected',
 
     'section.overview':        'Overview',
     'section.timeseries':      'Login Attempts Over Time',
@@ -110,6 +114,10 @@ const STRINGS = {
     'card.downloads':             'Arquivos Baixados',
     'card.unique_passwords':      'Senhas Coletadas',
     'card.unique_passwords.meta': 'senhas distintas coletadas',
+    'card.unique_usernames':      'Usuários Coletados',
+    'card.unique_usernames.meta': 'usuários distintos coletados',
+    'card.malware_hashes':        'Hashes de Malware',
+    'card.malware_hashes.meta':   'hashes de arquivos coletados',
 
     'section.overview':        'Visão Geral',
     'section.timeseries':      'Tentativas de Login ao Longo do Tempo',
@@ -436,7 +444,9 @@ function renderAll(d) {
   counter($('v-commands'),         overview.commands);
   counter($('v-ips'),              overview.unique_ips);
   counter($('v-downloads'),        overview.downloads);
-  if (overview.unique_passwords != null) counter($('v-unique-passwords'), overview.unique_passwords);
+  if (overview.unique_passwords     != null) counter($('v-unique-passwords'),  overview.unique_passwords);
+  if (overview.unique_usernames     != null) counter($('v-unique-usernames'),  overview.unique_usernames);
+  if (overview.unique_malware_hashes != null) counter($('v-malware-hashes'), overview.unique_malware_hashes);
 
   $('m-auth').textContent     = tf('meta.success_pct', overview.success_pct);
   $('m-commands').textContent = tf('meta.cmd_sessions', overview.cmd_sessions);
