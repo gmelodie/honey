@@ -1,4 +1,5 @@
 import gzip
+import hashlib
 import io
 import os
 import requests
@@ -292,6 +293,11 @@ def _wl_cond(since):
     return "timestamp >= %s", (since,)
 
 
+def _cheap_hash(count, newest):
+    ts = newest.isoformat() if newest else ""
+    return hashlib.sha256(f"{count}:{ts}".encode()).hexdigest()
+
+
 @app.route("/api/wordlist")
 def wordlist_meta():
     period = request.args.get("period", "all")
@@ -316,15 +322,9 @@ def wordlist_meta():
                 GROUP BY username ORDER BY COUNT(*) DESC, username ASC LIMIT 5
             """, wp)
             u_preview = [r["username"] for r in cur.fetchall()]
-            cur.execute(f"""
-                SELECT encode(sha256(coalesce(
-                    string_agg(username, E'\\n' ORDER BY cnt DESC, username ASC), ''
-                )::bytea), 'hex') AS hash
-                FROM (SELECT username, COUNT(*) AS cnt FROM auth
-                      WHERE username IS NOT NULL AND username != '' AND {wc}
-                      GROUP BY username) t
-            """, wp)
-            u_hash = cur.fetchone()["hash"]
+            # Hash is derived from count + newest row rather than full string_agg,
+            # which times out on large datasets (all-time period).
+            u_hash = _cheap_hash(int(u["total"]), u["newest"])
 
             cur.execute(f"""
                 SELECT COUNT(DISTINCT password) AS total,
@@ -338,15 +338,7 @@ def wordlist_meta():
                 GROUP BY password ORDER BY COUNT(*) DESC, password ASC LIMIT 5
             """, wp)
             p_preview = [r["password"] for r in cur.fetchall()]
-            cur.execute(f"""
-                SELECT encode(sha256(coalesce(
-                    string_agg(password, E'\\n' ORDER BY cnt DESC, password ASC), ''
-                )::bytea), 'hex') AS hash
-                FROM (SELECT password, COUNT(*) AS cnt FROM auth
-                      WHERE password IS NOT NULL AND password != '' AND {wc}
-                      GROUP BY password) t
-            """, wp)
-            p_hash = cur.fetchone()["hash"]
+            p_hash = _cheap_hash(int(p["total"]), u["newest"])
 
             cur.execute(f"""
                 SELECT COUNT(DISTINCT (username, password)) AS total,
@@ -360,16 +352,7 @@ def wordlist_meta():
                 GROUP BY username, password ORDER BY COUNT(*) DESC, username ASC, password ASC LIMIT 5
             """, wp)
             pa_preview = [f"{r['username']}:{r['password']}" for r in cur.fetchall()]
-            cur.execute(f"""
-                SELECT encode(sha256(coalesce(
-                    string_agg(username || ':' || password, E'\\n'
-                               ORDER BY cnt DESC, username ASC, password ASC), ''
-                )::bytea), 'hex') AS hash
-                FROM (SELECT username, password, COUNT(*) AS cnt FROM auth
-                      WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
-                      GROUP BY username, password) t
-            """, wp)
-            pa_hash = cur.fetchone()["hash"]
+            pa_hash = _cheap_hash(int(pa["total"]), u["newest"])
 
         def stats(row, preview, sha256):
             total = int(row["total"])
