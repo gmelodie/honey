@@ -36,7 +36,11 @@ const STRINGS = {
     'section.pairs':           'Top Credential Pairs',
     'section.clients':         'SSH Client Versions',
     'section.downloads':       'Downloads',
+    'section.malware_hashes':  'Malware Hashes',
     'section.logs':            'Activity Logs',
+
+    'th.first_seen':   'First Seen',
+    'th.downloads':    'Downloads',
 
     'chart.by_hour':   'Attacks by Hour of Day',
     'chart.by_dow':    'Attacks by Day of Week',
@@ -127,7 +131,11 @@ const STRINGS = {
     'section.pairs':           'Pares de Credenciais Mais Usados',
     'section.clients':         'Versões de Cliente SSH',
     'section.downloads':       'Downloads',
+    'section.malware_hashes':  'Hashes de Malware',
     'section.logs':            'Registros de Atividade',
+
+    'th.first_seen':   'Primeira Vez',
+    'th.downloads':    'Downloads',
 
     'chart.by_hour':   'Ataques por Hora do Dia',
     'chart.by_dow':    'Ataques por Dia da Semana',
@@ -439,7 +447,6 @@ function destroyCharts() {
 function renderAll(d) {
   const { overview } = d;
 
-  counter($('v-connections'),      overview.connections);
   counter($('v-auth'),             overview.auth_attempts);
   counter($('v-commands'),         overview.commands);
   counter($('v-ips'),              overview.unique_ips);
@@ -562,6 +569,16 @@ function renderAll(d) {
   );
 
   $('section-downloads').hidden = !d.dl_log.length && !d.top_urls.length;
+
+  const mhd = d.malware_hashes_detail || [];
+  $('section-malware-hashes').hidden = !mhd.length;
+  fillTable('tbl-malware-hashes', mhd, r =>
+    `<td class="rank">${r._rank}</td>
+     <td class="mono truncate" title="${esc(r.shasum)}">${esc(r.shasum.substring(0, 16))}…</td>
+     <td class="mono truncate">${esc(r.url || '—')}</td>
+     <td class="num mono">${r.downloads}</td>
+     <td class="mono">${fmtTs(r.first_seen)}</td>`
+  );
 }
 
 // ── Wordlists ─────────────────────────────────────────────────────────────

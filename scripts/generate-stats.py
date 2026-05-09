@@ -222,6 +222,18 @@ def compute(conn, window):
             for r in cur.fetchall()
         ]
 
+        cur.execute(f"""
+            SELECT d.shasum, d.url, count(*) AS downloads, min(d.timestamp) AS first_seen
+            FROM downloads d WHERE {dc} AND d.shasum IS NOT NULL
+            GROUP BY d.shasum, d.url ORDER BY downloads DESC LIMIT 20
+        """, dp)
+        malware_hashes_detail = [
+            {"shasum": r["shasum"], "url": r["url"],
+             "downloads": int(r["downloads"]),
+             "first_seen": r["first_seen"].isoformat()}
+            for r in cur.fetchall()
+        ]
+
     return {
         "window":        window,
         "generated_at":  now.isoformat(),
@@ -246,9 +258,10 @@ def compute(conn, window):
         "by_dow":        by_dow,
         "ssh_clients":   ssh_clients,
         "top_urls":      top_urls,
-        "cmd_log":       cmd_log,
-        "auth_log":      auth_log,
-        "dl_log":        dl_log,
+        "cmd_log":              cmd_log,
+        "auth_log":             auth_log,
+        "dl_log":               dl_log,
+        "malware_hashes_detail": malware_hashes_detail,
     }
 
 

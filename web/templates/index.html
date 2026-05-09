@@ -124,12 +124,30 @@
           <div class="cards-grid">
 
             <div class="stat-card">
-              <div class="card-glyph" style="--clr:var(--c-blue)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 9l3 3-3 3"/><path d="M13 15h3"/><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              <div class="card-glyph" style="--clr:var(--c-green)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M12 11l9-9"/><path d="M17 6l2 2"/><path d="M21 2l0 4"/></svg>
               </div>
-              <p class="card-label" data-i18n="card.connections">Connections</p>
-              <p class="card-value" id="v-connections">—</p>
-              <p class="card-meta" data-i18n="card.connections.meta">distinct attacker sessions</p>
+              <p class="card-label" data-i18n="card.unique_passwords">Unique Passwords</p>
+              <p class="card-value" id="v-unique-passwords">—</p>
+              <p class="card-meta" data-i18n="card.unique_passwords.meta">distinct passwords collected</p>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-aqua)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.unique_usernames">Unique Usernames</p>
+              <p class="card-value" id="v-unique-usernames">—</p>
+              <p class="card-meta" data-i18n="card.unique_usernames.meta">distinct usernames collected</p>
+            </div>
+
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-orange)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.ips">Unique IPs</p>
+              <p class="card-value" id="v-ips">—</p>
+              <p class="card-meta" data-i18n="card.ips.meta">distinct source addresses</p>
             </div>
 
             <div class="stat-card">
@@ -151,39 +169,12 @@
             </div>
 
             <div class="stat-card">
-              <div class="card-glyph" style="--clr:var(--c-orange)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-              </div>
-              <p class="card-label" data-i18n="card.ips">Unique IPs</p>
-              <p class="card-value" id="v-ips">—</p>
-              <p class="card-meta" data-i18n="card.ips.meta">distinct source addresses</p>
-            </div>
-
-            <div class="stat-card">
               <div class="card-glyph" style="--clr:var(--c-purple)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </div>
               <p class="card-label" data-i18n="card.downloads">File Downloads</p>
               <p class="card-value" id="v-downloads">—</p>
               <p class="card-meta" id="m-downloads"></p>
-            </div>
-
-            <div class="stat-card">
-              <div class="card-glyph" style="--clr:var(--c-green)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M12 11l9-9"/><path d="M17 6l2 2"/><path d="M21 2l0 4"/></svg>
-              </div>
-              <p class="card-label" data-i18n="card.unique_passwords">Unique Passwords</p>
-              <p class="card-value" id="v-unique-passwords">—</p>
-              <p class="card-meta" data-i18n="card.unique_passwords.meta">distinct passwords collected</p>
-            </div>
-
-            <div class="stat-card">
-              <div class="card-glyph" style="--clr:var(--c-aqua)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
-              <p class="card-label" data-i18n="card.unique_usernames">Unique Usernames</p>
-              <p class="card-value" id="v-unique-usernames">—</p>
-              <p class="card-meta" data-i18n="card.unique_usernames.meta">distinct usernames collected</p>
             </div>
 
             <div class="stat-card">
@@ -301,6 +292,23 @@
           <div class="chart-card">
             <h3 class="chart-title" data-i18n="chart.top_urls">Top Download URLs</h3>
             <div class="chart-body" style="height:220px"><canvas id="chart-urls"></canvas></div>
+          </div>
+        </section>
+
+        <!-- ── Malware hashes ── -->
+        <section class="section" id="section-malware-hashes">
+          <h2 class="section-heading" data-i18n="section.malware_hashes">Malware Hashes</h2>
+          <div class="tbl-wrap">
+            <table class="data-tbl" id="tbl-malware-hashes">
+              <thead><tr>
+                <th data-i18n="th.rank">#</th>
+                <th data-i18n="th.sha">SHA-256</th>
+                <th data-i18n="th.url">URL</th>
+                <th data-i18n="th.downloads">Downloads</th>
+                <th data-i18n="th.first_seen">First Seen</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
           </div>
         </section>
 
