@@ -61,8 +61,6 @@ const STRINGS = {
     'loading.stats':      'Loading statistics…',
     'loading.stats.spin': 'loading statistics…',
     'loading.wordlists':  'Generating wordlists…',
-    'err.timeout':        'request timed out — is the server running?',
-    'err.hint':           'check: docker compose logs web',
     'tbl.nodata':         'No data for this window',
 
     'wl.title':         'Generated Wordlists',
@@ -146,8 +144,6 @@ const STRINGS = {
     'loading.stats':      'Carregando estatísticas…',
     'loading.stats.spin': 'carregando estatísticas…',
     'loading.wordlists':  'Gerando wordlists…',
-    'err.timeout':        'requisição expirou — o servidor está rodando?',
-    'err.hint':           'verificar: docker compose logs web',
     'tbl.nodata':         'Sem dados para este período',
 
     'wl.title':         'Wordlists Geradas',
@@ -389,28 +385,30 @@ async function loadStats() {
   $('stats-root').hidden = true;
   $('loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
-  try {
-    const res  = await fetch(`/api/stats?window=${currentWindow}`, { signal: controller.signal });
-    if (!res.ok) throw new Error(`server error ${res.status}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    lastData = data;
-    destroyCharts();
-    renderAll(data);
-    $('loading').hidden    = true;
-    $('stats-root').hidden = false;
-    $('last-updated').textContent = new Date().toLocaleTimeString();
-  } catch (err) {
-    const msg = err.name === 'AbortError' ? t('err.timeout') : err.message;
-    $('loading').innerHTML =
-      `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center;line-height:1.8">
-        ERR: ${esc(msg)}<br>
-        <span style="color:var(--fg-dim);font-size:.75rem">${t('err.hint')}</span>
-      </p>`;
-  } finally {
-    clearTimeout(timer);
+  for (;;) {
+    try {
+      const res  = await fetch(`/api/stats?window=${currentWindow}`);
+      if (res.status === 503) {
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+      if (!res.ok) throw new Error(`server error ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      lastData = data;
+      destroyCharts();
+      renderAll(data);
+      $('loading').hidden    = true;
+      $('stats-root').hidden = false;
+      $('last-updated').textContent = new Date().toLocaleTimeString();
+      return;
+    } catch (err) {
+      $('loading').innerHTML =
+        `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center">
+          ERR: ${esc(err.message)}
+        </p>`;
+      return;
+    }
   }
 }
 
