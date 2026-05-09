@@ -14,22 +14,25 @@ const STRINGS = {
     'nav.wordlists':       'Wordlists',
     'win.all':             'All',
 
-    'card.connections':      'Connections',
-    'card.connections.meta': 'distinct attacker sessions',
-    'card.auth':             'Auth Attempts',
-    'card.commands':         'Commands Run',
-    'card.ips':              'Unique IPs',
-    'card.ips.meta':         'distinct source addresses',
-    'card.downloads':        'File Downloads',
+    'card.connections':           'Connections',
+    'card.connections.meta':      'distinct attacker sessions',
+    'card.auth':                  'Auth Attempts',
+    'card.commands':              'Commands Run',
+    'card.ips':                   'Unique IPs',
+    'card.ips.meta':              'distinct source addresses',
+    'card.downloads':             'File Downloads',
+    'card.unique_passwords':      'Unique Passwords',
+    'card.unique_passwords.meta': 'distinct passwords collected',
 
-    'section.overview':    'Overview',
-    'section.timeseries':  'Login Attempts Over Time',
-    'section.timing':      'Timing Patterns',
-    'section.credentials': 'Top Credentials',
-    'section.pairs':       'Top Credential Pairs',
-    'section.clients':     'SSH Client Versions',
-    'section.downloads':   'Downloads',
-    'section.logs':        'Activity Logs',
+    'section.overview':        'Overview',
+    'section.timeseries':      'Login Attempts Over Time',
+    'section.timing':          'Timing Patterns',
+    'section.credentials':     'Top Credentials',
+    'section.password_hashes': 'Password Hashes',
+    'section.pairs':           'Top Credential Pairs',
+    'section.clients':         'SSH Client Versions',
+    'section.downloads':       'Downloads',
+    'section.logs':            'Activity Logs',
 
     'chart.by_hour':   'Attacks by Hour of Day',
     'chart.by_dow':    'Attacks by Day of Week',
@@ -43,6 +46,7 @@ const STRINGS = {
     'th.rank':        '#',
     'th.username':    'Username',
     'th.password':    'Password',
+    'th.sha256':      'SHA-256',
     'th.attempts':    'Attempts',
     'th.client':      'Client String',
     'th.connections': 'Connections',
@@ -97,22 +101,25 @@ const STRINGS = {
     'nav.wordlists':       'Wordlists',
     'win.all':             'Tudo',
 
-    'card.connections':      'Conexões',
-    'card.connections.meta': 'sessões de atacantes distintos',
-    'card.auth':             'Tentativas de Login',
-    'card.commands':         'Comandos Executados',
-    'card.ips':              'IPs Únicos',
-    'card.ips.meta':         'endereços de origem distintos',
-    'card.downloads':        'Arquivos Baixados',
+    'card.connections':           'Conexões',
+    'card.connections.meta':      'sessões de atacantes distintos',
+    'card.auth':                  'Tentativas de Login',
+    'card.commands':              'Comandos Executados',
+    'card.ips':                   'IPs Únicos',
+    'card.ips.meta':              'endereços de origem distintos',
+    'card.downloads':             'Arquivos Baixados',
+    'card.unique_passwords':      'Senhas Coletadas',
+    'card.unique_passwords.meta': 'senhas distintas coletadas',
 
-    'section.overview':    'Visão Geral',
-    'section.timeseries':  'Tentativas de Login ao Longo do Tempo',
-    'section.timing':      'Padrões Temporais',
-    'section.credentials': 'Credenciais Mais Usadas',
-    'section.pairs':       'Pares de Credenciais Mais Usados',
-    'section.clients':     'Versões de Cliente SSH',
-    'section.downloads':   'Downloads',
-    'section.logs':        'Registros de Atividade',
+    'section.overview':        'Visão Geral',
+    'section.timeseries':      'Tentativas de Login ao Longo do Tempo',
+    'section.timing':          'Padrões Temporais',
+    'section.credentials':     'Credenciais Mais Usadas',
+    'section.password_hashes': 'Hashes de Senhas',
+    'section.pairs':           'Pares de Credenciais Mais Usados',
+    'section.clients':         'Versões de Cliente SSH',
+    'section.downloads':       'Downloads',
+    'section.logs':            'Registros de Atividade',
 
     'chart.by_hour':   'Ataques por Hora do Dia',
     'chart.by_dow':    'Ataques por Dia da Semana',
@@ -126,6 +133,7 @@ const STRINGS = {
     'th.rank':        '#',
     'th.username':    'Usuário',
     'th.password':    'Senha',
+    'th.sha256':      'SHA-256',
     'th.attempts':    'Tentativas',
     'th.client':      'Versão do Cliente',
     'th.connections': 'Conexões',
@@ -423,11 +431,12 @@ function destroyCharts() {
 function renderAll(d) {
   const { overview } = d;
 
-  counter($('v-connections'), overview.connections);
-  counter($('v-auth'),        overview.auth_attempts);
-  counter($('v-commands'),    overview.commands);
-  counter($('v-ips'),         overview.unique_ips);
-  counter($('v-downloads'),   overview.downloads);
+  counter($('v-connections'),      overview.connections);
+  counter($('v-auth'),             overview.auth_attempts);
+  counter($('v-commands'),         overview.commands);
+  counter($('v-ips'),              overview.unique_ips);
+  counter($('v-downloads'),        overview.downloads);
+  if (overview.unique_passwords != null) counter($('v-unique-passwords'), overview.unique_passwords);
 
   $('m-auth').textContent     = tf('meta.success_pct', overview.success_pct);
   $('m-commands').textContent = tf('meta.cmd_sessions', overview.cmd_sessions);
@@ -499,6 +508,13 @@ function renderAll(d) {
       d.top_urls.map(r => Number(r.downloads)),
       GBX.yellow + 'cc');
   }
+
+  fillTable('tbl-password-hashes', d.password_hashes || [], r =>
+    `<td class="rank">${r._rank}</td>
+     <td class="mono">${esc(r.password)}</td>
+     <td class="mono truncate" title="${esc(r.sha256)}">${esc(r.sha256)}</td>
+     <td class="num mono">${r.attempts}</td>`
+  );
 
   fillTable('tbl-pairs', d.top_pairs, r =>
     `<td class="rank">${r._rank}</td>

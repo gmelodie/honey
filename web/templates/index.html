@@ -168,6 +168,15 @@
               <p class="card-meta" id="m-downloads"></p>
             </div>
 
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-green)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M12 11l9-9"/><path d="M17 6l2 2"/><path d="M21 2l0 4"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.unique_passwords">Unique Passwords</p>
+              <p class="card-value" id="v-unique-passwords">—</p>
+              <p class="card-meta" data-i18n="card.unique_passwords.meta">distinct passwords collected</p>
+            </div>
+
           </div>
         </section>
 
@@ -218,6 +227,22 @@
               <h3 class="chart-title" data-i18n="chart.passwords">Passwords</h3>
               <div class="chart-body" style="height:260px"><canvas id="chart-passwords"></canvas></div>
             </div>
+          </div>
+        </section>
+
+        <!-- ── Password hashes ── -->
+        <section class="section">
+          <h2 class="section-heading" data-i18n="section.password_hashes">Password Hashes</h2>
+          <div class="tbl-wrap">
+            <table class="data-tbl" id="tbl-password-hashes">
+              <thead><tr>
+                <th data-i18n="th.rank">#</th>
+                <th data-i18n="th.password">Password</th>
+                <th data-i18n="th.sha256">SHA-256</th>
+                <th data-i18n="th.attempts">Attempts</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
           </div>
         </section>
 

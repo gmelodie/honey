@@ -4,6 +4,7 @@ Precompute /api/stats for all time windows and write to STATS_DIR/{window}.json.
 Run on a schedule (e.g. every 5 minutes); the web server serves the cached files.
 """
 
+import hashlib
 import json
 import os
 import sys
@@ -85,6 +86,9 @@ def compute(conn, window):
         cur.execute(f"SELECT count(*) AS v FROM downloads d WHERE {dc}", dp)
         dl_count = int(cur.fetchone()["v"])
 
+        cur.execute(f"SELECT count(DISTINCT a.password) AS v FROM auth a WHERE {ac}", ap)
+        unique_passwords = int(cur.fetchone()["v"])
+
         cur.execute(
             f"SELECT round(sum(CASE WHEN a.success THEN 1 ELSE 0 END)::numeric "
             f"/ NULLIF(count(*), 0) * 100, 2) AS v FROM auth a WHERE {ac}", ap
@@ -106,6 +110,20 @@ def compute(conn, window):
             GROUP BY a.password ORDER BY attempts DESC LIMIT 15
         """, ap)
         top_passwords = rows(cur)
+
+        cur.execute(f"""
+            SELECT a.password, count(*) AS attempts
+            FROM auth a WHERE {ac}
+            GROUP BY a.password ORDER BY attempts DESC LIMIT 100
+        """, ap)
+        password_hashes = [
+            {
+                "password": r["password"],
+                "sha256": hashlib.sha256((r["password"] or "").encode()).hexdigest(),
+                "attempts": int(r["attempts"]),
+            }
+            for r in cur.fetchall()
+        ]
 
         cur.execute(f"""
             SELECT a.username, a.password, count(*) AS attempts
@@ -202,17 +220,19 @@ def compute(conn, window):
         "window":        window,
         "generated_at":  now.isoformat(),
         "overview": {
-            "connections":   connections,
-            "cmd_sessions":  cmd_sessions,
-            "auth_attempts": auth_attempts,
-            "commands":      commands,
-            "unique_ips":    unique_ips,
-            "downloads":     dl_count,
-            "success_pct":   success_pct,
+            "connections":     connections,
+            "cmd_sessions":    cmd_sessions,
+            "auth_attempts":   auth_attempts,
+            "commands":        commands,
+            "unique_ips":      unique_ips,
+            "downloads":       dl_count,
+            "success_pct":     success_pct,
+            "unique_passwords": unique_passwords,
         },
-        "top_usernames": top_usernames,
-        "top_passwords": top_passwords,
-        "top_pairs":     top_pairs,
+        "top_usernames":   top_usernames,
+        "top_passwords":   top_passwords,
+        "password_hashes": password_hashes,
+        "top_pairs":       top_pairs,
         "timeseries":    timeseries,
         "by_hour":       by_hour,
         "by_dow":        by_dow,
