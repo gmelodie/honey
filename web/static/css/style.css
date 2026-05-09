@@ -158,6 +158,11 @@ body { min-height: 100vh; }
   color: var(--c-red); font-family: 'JetBrains Mono', monospace;
 }
 
+.gate-controls {
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  padding: 10px 14px; border-top: 1px solid var(--border);
+}
+
 /* ── App shell ───────────────────────────────────────────────────────── */
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 

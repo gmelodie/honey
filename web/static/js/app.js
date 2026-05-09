@@ -263,24 +263,26 @@ const root = document.documentElement;
 root.dataset.theme = localStorage.getItem('theme') || 'light';
 syncThemeIcon(root.dataset.theme);
 
-$('theme-btn').addEventListener('click', () => {
-  const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-  root.dataset.theme = next;
-  localStorage.setItem('theme', next);
-  syncThemeIcon(next);
-  Object.values(activeCharts).forEach(c => {
-    const s = c.options.scales;
-    if (s) Object.values(s).forEach(ax => {
-      if (ax.ticks) ax.ticks.color = fgColor();
-      if (ax.grid)  ax.grid.color  = gridColor();
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    localStorage.setItem('theme', next);
+    syncThemeIcon(next);
+    Object.values(activeCharts).forEach(c => {
+      const s = c.options.scales;
+      if (s) Object.values(s).forEach(ax => {
+        if (ax.ticks) ax.ticks.color = fgColor();
+        if (ax.grid)  ax.grid.color  = gridColor();
+      });
+      c.update();
     });
-    c.update();
   });
 });
 
 function syncThemeIcon(t) {
-  $('icon-sun').style.display  = t === 'dark' ? ''     : 'none';
-  $('icon-moon').style.display = t === 'dark' ? 'none' : '';
+  document.querySelectorAll('.icon-sun').forEach(el => el.style.display = t === 'dark' ? '' : 'none');
+  document.querySelectorAll('.icon-moon').forEach(el => el.style.display = t === 'dark' ? 'none' : '');
 }
 
 // ── Language switcher ─────────────────────────────────────────────────────
