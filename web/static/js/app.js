@@ -582,7 +582,7 @@ function renderWordlists(data) {
     if (!countEl) continue;
 
     countEl.textContent  = info.total ? info.total.toLocaleString() : '0';
-    periodEl.textContent = fmtPeriod(info.oldest, info.newest);
+    periodEl.textContent = info.oldest ? fmtPeriod(info.oldest, info.newest) : (info.ready ? t(`wl.period.${data.period}`) : t('period.nodata'));
     sizeEl.textContent   = info.gz_size || '—';
 
     listEl.innerHTML = (!info.preview || !info.preview.length)

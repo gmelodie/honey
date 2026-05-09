@@ -279,7 +279,40 @@ def _fmt_bytes(n):
     return f"{n:.1f} GB"
 
 
+WORDLIST_DIR = os.environ.get("WORDLIST_DIR", "/wordlists")
+
+# Maps URL period param -> subdirectory name used by generate-wordlists.py
 WL_PERIODS = {
+    "daily":   "daily",
+    "weekly":  "weekly",
+    "monthly": "monthly",
+    "all":     "alltime",
+}
+
+# Maps URL wtype param -> filename used by generate-wordlists.py
+WL_FILES = {
+    "usernames": "usernames.txt",
+    "passwords": "passwords.txt",
+    "pairs":     "passwords_usernames.txt",
+}
+
+
+def _wl_path(period, wtype):
+    return os.path.join(WORDLIST_DIR, WL_PERIODS[period], WL_FILES[wtype])
+
+
+def _wl_meta(path):
+    """Return (line_count, file_size, mtime) for a wordlist file, or None if missing."""
+    try:
+        st = os.stat(path)
+        with open(path, "rb") as f:
+            count = sum(1 for _ in f)
+        return count, st.st_size, st.st_mtime
+    except FileNotFoundError:
+        return None
+
+
+WL_OFFSETS = {
     "daily":   timedelta(days=1),
     "weekly":  timedelta(days=7),
     "monthly": timedelta(days=30),
@@ -287,145 +320,71 @@ WL_PERIODS = {
 }
 
 
-def _wl_cond(since):
-    if since is None:
-        return "TRUE", ()
-    return "timestamp >= %s", (since,)
-
-
-def _cheap_hash(count, newest):
-    ts = newest.isoformat() if newest else ""
-    return hashlib.sha256(f"{count}:{ts}".encode()).hexdigest()
-
-
 @app.route("/api/wordlist")
 def wordlist_meta():
     period = request.args.get("period", "all")
     if period not in WL_PERIODS:
         period = "all"
-    since = None if WL_PERIODS[period] is None else datetime.now(timezone.utc) - WL_PERIODS[period]
-    wc, wp = _wl_cond(since)
 
-    conn = _conn()
-    try:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(f"""
-                SELECT COUNT(DISTINCT username) AS total,
-                       COALESCE(AVG(LENGTH(username))::int, 0) AS avg_len,
-                       MIN(timestamp) AS oldest, MAX(timestamp) AS newest
-                FROM auth WHERE username IS NOT NULL AND username != '' AND {wc}
-            """, wp)
-            u = cur.fetchone()
-            cur.execute(f"""
-                SELECT username FROM auth
-                WHERE username IS NOT NULL AND username != '' AND {wc}
-                GROUP BY username ORDER BY COUNT(*) DESC, username ASC LIMIT 5
-            """, wp)
-            u_preview = [r["username"] for r in cur.fetchall()]
-            # Hash is derived from count + newest row rather than full string_agg,
-            # which times out on large datasets (all-time period).
-            u_hash = _cheap_hash(int(u["total"]), u["newest"])
+    now = datetime.now(timezone.utc)
+    offset = WL_OFFSETS[period]
+    oldest_iso = (now - offset).isoformat() if offset else None
+    newest_iso = now.isoformat()
 
-            cur.execute(f"""
-                SELECT COUNT(DISTINCT password) AS total,
-                       COALESCE(AVG(LENGTH(password))::int, 0) AS avg_len
-                FROM auth WHERE password IS NOT NULL AND password != '' AND {wc}
-            """, wp)
-            p = cur.fetchone()
-            cur.execute(f"""
-                SELECT password FROM auth
-                WHERE password IS NOT NULL AND password != '' AND {wc}
-                GROUP BY password ORDER BY COUNT(*) DESC, password ASC LIMIT 5
-            """, wp)
-            p_preview = [r["password"] for r in cur.fetchall()]
-            p_hash = _cheap_hash(int(p["total"]), u["newest"])
+    def info(wtype):
+        path = _wl_path(period, wtype)
+        meta = _wl_meta(path)
+        if meta is None:
+            return {"ready": False, "oldest": None, "newest": None}
+        count, size, mtime = meta
+        sha = hashlib.sha256(f"{count}:{mtime}".encode()).hexdigest()
+        preview_lines = []
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                for i, line in enumerate(f):
+                    if i >= 5:
+                        break
+                    preview_lines.append(line.rstrip("\n"))
+        except FileNotFoundError:
+            pass
+        return {
+            "ready":   True,
+            "total":   count,
+            "oldest":  oldest_iso,
+            "newest":  newest_iso,
+            "gz_size": _fmt_bytes(int(size * 0.35)),
+            "sha256":  sha,
+            "preview": preview_lines,
+        }
 
-            cur.execute(f"""
-                SELECT COUNT(DISTINCT (username, password)) AS total,
-                       COALESCE(AVG(LENGTH(username) + LENGTH(password) + 1)::int, 0) AS avg_len
-                FROM auth WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
-            """, wp)
-            pa = cur.fetchone()
-            cur.execute(f"""
-                SELECT username, password FROM auth
-                WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
-                GROUP BY username, password ORDER BY COUNT(*) DESC, username ASC, password ASC LIMIT 5
-            """, wp)
-            pa_preview = [f"{r['username']}:{r['password']}" for r in cur.fetchall()]
-            pa_hash = _cheap_hash(int(pa["total"]), u["newest"])
-
-        def stats(row, preview, sha256):
-            total = int(row["total"])
-            avg   = int(row.get("avg_len") or 0)
-            raw   = total * (avg + 1)
-            return {
-                "total":   total,
-                "oldest":  row["oldest"].isoformat() if row.get("oldest") else None,
-                "newest":  row["newest"].isoformat() if row.get("newest") else None,
-                "gz_size": _fmt_bytes(int(raw * 0.35)),
-                "sha256":  sha256,
-                "preview": preview,
-            }
-
-        return jsonify({
-            "period":    period,
-            "usernames": stats(u, u_preview, u_hash),
-            "passwords": stats({**p, "oldest": u["oldest"], "newest": u["newest"]}, p_preview, p_hash),
-            "pairs":     stats({**pa, "oldest": u["oldest"], "newest": u["newest"]}, pa_preview, pa_hash),
-        })
-    except psycopg2.Error as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
+    return jsonify({
+        "period":    period,
+        "usernames": info("usernames"),
+        "passwords": info("passwords"),
+        "pairs":     info("pairs"),
+    })
 
 
 @app.route("/api/wordlist/<wtype>/download")
 def wordlist_download(wtype):
-    if wtype not in ("usernames", "passwords", "pairs"):
+    if wtype not in WL_FILES:
         return jsonify({"error": "invalid type"}), 400
     period = request.args.get("period", "all")
     if period not in WL_PERIODS:
         period = "all"
-    since = None if WL_PERIODS[period] is None else datetime.now(timezone.utc) - WL_PERIODS[period]
-    wc, wp = _wl_cond(since)
 
-    conn = _conn()
-    try:
-        with conn.cursor() as cur:
-            if wtype == "usernames":
-                cur.execute(f"""
-                    SELECT username FROM auth
-                    WHERE username IS NOT NULL AND username != '' AND {wc}
-                    GROUP BY username ORDER BY COUNT(*) DESC, username ASC
-                """, wp)
-                lines = [r[0] for r in cur.fetchall()]
-            elif wtype == "passwords":
-                cur.execute(f"""
-                    SELECT password FROM auth
-                    WHERE password IS NOT NULL AND password != '' AND {wc}
-                    GROUP BY password ORDER BY COUNT(*) DESC, password ASC
-                """, wp)
-                lines = [r[0] for r in cur.fetchall()]
-            else:
-                cur.execute(f"""
-                    SELECT username, password FROM auth
-                    WHERE username IS NOT NULL AND password IS NOT NULL AND {wc}
-                    GROUP BY username, password ORDER BY COUNT(*) DESC, username ASC, password ASC
-                """, wp)
-                lines = [f"{r[0]}:{r[1]}" for r in cur.fetchall()]
+    path = _wl_path(period, wtype)
+    if not os.path.exists(path):
+        return jsonify({"error": "wordlist not yet generated"}), 503
 
-        buf = io.BytesIO()
+    buf = io.BytesIO()
+    with open(path, "rb") as f:
         with gzip.GzipFile(fileobj=buf, mode="wb") as gz:
-            for line in lines:
-                gz.write((line + "\n").encode("utf-8", errors="replace"))
-        buf.seek(0)
-        return Response(
-            buf.read(),
-            mimetype="application/gzip",
-            headers={"Content-Disposition": f"attachment; filename=autopot_{period}_{wtype}.txt.gz"},
-        )
-    except psycopg2.Error as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
+            gz.write(f.read())
+    buf.seek(0)
+    return Response(
+        buf.read(),
+        mimetype="application/gzip",
+        headers={"Content-Disposition": f"attachment; filename=autopot_{period}_{wtype}.txt.gz"},
+    )
 
