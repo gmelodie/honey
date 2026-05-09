@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Lid -->
+  <rect x="18" y="10" width="28" height="6" rx="3" fill="#F4A300"/>
+  <rect x="22" y="7" width="20" height="5" rx="2.5" fill="#F4A300"/>
+
+  <!-- Honey drip on rim -->
+  <ellipse cx="38" cy="16" rx="3" ry="2" fill="#FFD04D"/>
+  <path d="M36 16 Q35 21 37 23 Q39 21 40 16 Z" fill="#FFD04D"/>
+
+  <!-- Pot body -->
+  <path d="M16 18 Q12 20 12 30 L14 48 Q14 54 32 54 Q50 54 50 48 L52 30 Q52 20 48 18 Z" fill="#E8940A"/>
+
+  <!-- Pot belly highlight -->
+  <ellipse cx="32" cy="36" rx="14" ry="12" fill="#F4A300"/>
+
+  <!-- Honey shine -->
+  <ellipse cx="27" cy="30" rx="4" ry="2.5" fill="#FFD97D" opacity="0.6"/>
+
+  <!-- Label hex cells -->
+  <g fill="none" stroke="#E8940A" stroke-width="1" opacity="0.5">
+    <polygon points="29,33 32,31.3 35,33 35,36.4 32,38.1 29,36.4"/>
+    <polygon points="22,33 25,31.3 28,33 28,36.4 25,38.1 22,36.4"/>
+    <polygon points="36,33 39,31.3 42,33 42,36.4 39,38.1 36,36.4"/>
+    <polygon points="25.5,39 28.5,37.3 31.5,39 31.5,42.4 28.5,44.1 25.5,42.4"/>
+    <polygon points="32.5,39 35.5,37.3 38.5,39 38.5,42.4 35.5,44.1 32.5,42.4"/>
+  </g>
+
+  <!-- Pot base shadow -->
+  <ellipse cx="32" cy="53" rx="16" ry="3" fill="#C47200" opacity="0.4"/>
+</svg>
