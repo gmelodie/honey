@@ -67,8 +67,9 @@ html {
   color: var(--fg);
   transition: background .25s, color .25s;
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
-body { min-height: 100vh; }
+body { min-height: 100vh; overflow-x: hidden; }
 
 .grecaptcha-badge { visibility: hidden !important; }
 [hidden] { display: none !important; }

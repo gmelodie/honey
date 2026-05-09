@@ -571,7 +571,6 @@ function renderAll(d) {
   $('section-downloads').hidden = !d.dl_log.length && !d.top_urls.length;
 
   const mhd = d.malware_hashes_detail || [];
-  $('section-malware-hashes').hidden = !mhd.length;
   fillTable('tbl-malware-hashes', mhd, r =>
     `<td class="rank">${r._rank}</td>
      <td class="mono truncate" title="${esc(r.shasum)}">${esc(r.shasum.substring(0, 16))}…</td>
