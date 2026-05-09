@@ -1,10 +1,10 @@
-# Cowrie Honeypot Dashboard
+# autopot
 
-SSH/Telnet honeypot that captures attacker sessions and displays them in a live web dashboard.
+SSH/Telnet honeypot that captures attacker sessions and serves them in a live web dashboard with downloadable credential wordlists.
 
-**Stack:** Cowrie → PostgreSQL → Flask → Nginx (SSL + reCAPTCHA v3)
+**Stack:** Cowrie → PostgreSQL → Flask → Nginx (SSL + reCAPTCHA)
 
-Cowrie listens on 2222/2223 (redirected from 22/23 via iptables). Sessions, logins, commands, and downloads go to PostgreSQL. Nginx serves the dashboard at your domain over HTTPS and fronts a fake router admin panel for unknown HTTP/HTTPS clients.
+Cowrie listens on 2222/2223 (redirected from 22/23 via iptables). Sessions, logins, commands, and downloads go to PostgreSQL. Stats and wordlists are precomputed by background workers and served instantly by the web server.
 
 ---
 
@@ -21,8 +21,8 @@ Cowrie listens on 2222/2223 (redirected from 22/23 via iptables). Sessions, logi
 ### 1. Clone
 
 ```bash
-git clone <repo-url> ~/cowrie-dashboard
-cd ~/cowrie-dashboard
+git clone <repo-url> ~/autopot
+cd ~/autopot
 ```
 
 ### 2. Move your real SSH off port 22
@@ -34,11 +34,7 @@ echo "Port 22222" | sudo tee -a /etc/ssh/sshd_config
 sudo systemctl restart sshd
 ```
 
-Open a new terminal and confirm login works on the new port before continuing:
-
-```bash
-ssh -p 22222 user@your-server
-```
+Open a new terminal and confirm login on the new port before continuing.
 
 ### 3. Configure .env
 
@@ -60,7 +56,7 @@ RECAPTCHA_SITE_KEY=
 RECAPTCHA_SECRET_KEY=
 ```
 
-Get reCAPTCHA v3 keys at [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) — add your domain, choose v3, paste both keys. Leave both empty to disable the gate.
+Get reCAPTCHA keys at [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) — add your domain, choose v2 Checkbox, paste both keys. Leave blank to disable the gate.
 
 ### 4. Start the stack
 
@@ -73,11 +69,11 @@ docker compose up -d
 | `postgres` | Stores all honeypot data |
 | `postgres-init` | Applies DB schema (runs once, exits) |
 | `cowrie` | SSH/Telnet honeypot on 2222/2223 |
-| `web` | Stats dashboard on localhost:8373 |
-| `honeypot-web` | Fake router admin panel on localhost:8374 |
+| `stats-gen` | Precomputes dashboard stats every 5 minutes |
+| `wordlist-gen` | Generates credential wordlists every 6 hours |
+| `web` | Dashboard on localhost:8373 |
 | `nginx` | Routes 80/443 by domain |
 | `certbot` | Renews SSL every 12 hours |
-| `wordlists` | Generates credential wordlists from captures |
 
 ### 5. Obtain SSL certificate
 
@@ -97,32 +93,25 @@ sudo netfilter-persistent save
 ### 7. Verify
 
 ```bash
-docker compose logs cowrie --tail=20
-```
-
-```bash
 ssh root@your-server-ip    # should land in a fake shell
-```
-
-```bash
-docker compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB \
-  -c "SELECT COUNT(*) FROM sessions; SELECT COUNT(*) FROM auth;"
 ```
 
 Open `https://honey.example.com`.
 
 ---
 
-## Useful commands
+## Importing existing Cowrie logs
+
+If you have existing Cowrie JSON logs, import them into the database:
 
 ```bash
-docker compose logs -f                  # all logs
-docker compose logs -f cowrie           # single service
-docker compose up -d --build            # rebuild after code changes
-docker compose restart web              # restart one service
-docker compose down                     # stop (keeps data)
-docker compose down -v                  # stop and wipe all data
+pip install psycopg2-binary python-dotenv
+python3 scripts/import-cowrie-json.py /path/to/cowrie.json*
 ```
+
+- Reads DB credentials from `.env` automatically
+- Safe to re-run on overlapping files — duplicates are skipped
+- After import, `stats-gen` and `wordlist-gen` will pick up the new data on their next run
 
 ---
 
@@ -130,5 +119,5 @@ docker compose down -v                  # stop and wipe all data
 
 - All containers use `network_mode: host` and communicate via `127.0.0.1`.
 - `.env` is gitignored — never commit it.
-- `cowrie/var/` is gitignored. Back it up if you want to preserve captured files.
+- Dashboard stats refresh every 5 minutes; wordlists every 6 hours.
 - `setup-port-redirect.sh` is idempotent — safe to re-run.
