@@ -29,6 +29,14 @@ WINDOWS = {
     "alltime": None,
 }
 
+# (recent_since_expr, baseline_since_expr) — alltime has no meaningful baseline
+TREND_WINDOWS = {
+    "daily":   ("NOW() - INTERVAL '1 day'",   "NOW() - INTERVAL '2 days'"),
+    "weekly":  ("NOW() - INTERVAL '7 days'",  "NOW() - INTERVAL '14 days'"),
+    "monthly": ("NOW() - INTERVAL '30 days'", "NOW() - INTERVAL '60 days'"),
+}
+
+
 
 def load_bloom_filter():
     try:
@@ -83,6 +91,43 @@ def fetch_pairs(cur, since_expr):
     return [row[0] for row in cur.fetchall()]
 
 
+def fetch_trending(cur, recent_since, baseline_since):
+    cur.execute(f"""
+        SELECT
+            password,
+            COUNT(*) FILTER (WHERE "timestamp" >= {recent_since})                                    AS recent_cnt,
+            COUNT(*) FILTER (WHERE "timestamp" >= {baseline_since} AND "timestamp" < {recent_since}) AS baseline_cnt
+        FROM auth
+        WHERE password IS NOT NULL
+          AND password <> ''
+          AND "timestamp" >= {baseline_since}
+        GROUP BY password
+    """)
+    rows = cur.fetchall()
+
+    if not rows:
+        return [], [], 2
+
+    # Poisson-based adaptive floor: for random arrivals, std ≈ sqrt(mean),
+    # so sqrt(mean combined count) is the expected noise magnitude per password.
+    mean_count = sum(r + b for _, r, b in rows) / len(rows)
+    min_count = max(2, round(mean_count ** 0.5))
+
+    trending, dying = [], []
+    for pw, recent, baseline in rows:
+        if recent >= min_count and recent > baseline:
+            trending.append((pw, recent, baseline))
+        elif baseline >= min_count and baseline > recent:
+            dying.append((pw, recent, baseline))
+
+    # Sort trending by relative growth (new passwords — baseline=0 — float to top)
+    trending.sort(key=lambda x: x[1] / max(x[2], 0.1), reverse=True)
+    # Sort dying by absolute decline
+    dying.sort(key=lambda x: x[2] - x[1], reverse=True)
+
+    return [pw for pw, _, _ in trending], [pw for pw, _, _ in dying], min_count
+
+
 def write_wordlist(path, entries):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
@@ -125,12 +170,25 @@ def main():
                 write_wordlist(os.path.join(subdir, "novel_passwords.txt"), novel)
                 novel_count = len(novel)
 
+            trend_info = ""
+            if window in TREND_WINDOWS:
+                recent_expr, baseline_expr = TREND_WINDOWS[window]
+                trending, dying, min_count = fetch_trending(cur, recent_expr, baseline_expr)
+                write_wordlist(os.path.join(subdir, "trending_passwords.txt"), trending)
+                write_wordlist(os.path.join(subdir, "dying_passwords.txt"), dying)
+                trend_info = f", {len(trending)} trending, {len(dying)} dying (floor={min_count})"
+            else:
+                # alltime has no baseline — write empty files so the API reports ready
+                write_wordlist(os.path.join(subdir, "trending_passwords.txt"), [])
+                write_wordlist(os.path.join(subdir, "dying_passwords.txt"), [])
+
             print(
                 f"[{ts}] {window}: "
                 f"{len(passwords)} passwords, "
                 f"{len(usernames)} usernames, "
                 f"{len(pairs)} pairs"
                 + (f", {novel_count} novel" if bloom is not None else "")
+                + trend_info
             )
 
     conn.close()
