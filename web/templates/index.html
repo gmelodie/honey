@@ -186,6 +186,15 @@
               <p class="card-meta" data-i18n="card.malware_hashes.meta">distinct file hashes collected</p>
             </div>
 
+            <div class="stat-card">
+              <div class="card-glyph" style="--clr:var(--c-yellow)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <p class="card-label" data-i18n="card.novel_passwords">Novel Passwords</p>
+              <p class="card-value" id="v-novel-passwords">—</p>
+              <p class="card-meta" data-i18n="card.novel_passwords.meta">not in common lists</p>
+            </div>
+
           </div>
         </section>
 
@@ -631,6 +640,38 @@
               <div class="wl-preview">
                 <div class="wl-preview-label" data-i18n="wl.preview.pairs">preview — top 5 by frequency (user:pass format)</div>
                 <div class="wl-preview-list" id="wl-preview-pairs"></div>
+              </div>
+            </div>
+
+            <!-- Novel Passwords -->
+            <div class="wl-card">
+              <div class="wl-card-header">
+                <div>
+                  <h3 class="wl-card-title" data-i18n="wl.novel_passwords">Novel Passwords</h3>
+                  <div class="wl-stats">
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.entries">entries</span>
+                      <span class="wl-stat-val" id="wl-count-novel_passwords">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.period">period</span>
+                      <span class="wl-stat-val" id="wl-period-novel_passwords">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.size">~size (gz)</span>
+                      <span class="wl-stat-val" id="wl-size-novel_passwords">—</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-download" data-wtype="novel_passwords">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  .txt.gz
+                </button>
+              </div>
+              <div class="wl-hash" id="wl-hash-novel_passwords"></div>
+              <div class="wl-preview">
+                <div class="wl-preview-label" data-i18n="wl.preview.novel_passwords">preview — top 5 not in common lists</div>
+                <div class="wl-preview-list" id="wl-preview-novel_passwords"></div>
               </div>
             </div>
 

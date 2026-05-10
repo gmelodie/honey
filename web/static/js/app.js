@@ -27,6 +27,8 @@ const STRINGS = {
     'card.unique_usernames.meta': 'distinct usernames collected',
     'card.malware_hashes':        'Malware Hashes',
     'card.malware_hashes.meta':   'distinct file hashes collected',
+    'card.novel_passwords':       'Novel Passwords',
+    'card.novel_passwords.meta':  'not in common lists',
 
     'section.overview':        'Overview',
     'section.timeseries':      'Login Attempts Over Time',
@@ -112,14 +114,16 @@ const STRINGS = {
     'wl.period.weekly':  'Weekly',
     'wl.period.monthly': 'Monthly',
     'wl.period.all':     'All Time',
-    'wl.usernames':     'Usernames',
-    'wl.passwords':     'Passwords',
-    'wl.pairs':         'Credential Pairs',
+    'wl.usernames':        'Usernames',
+    'wl.passwords':        'Passwords',
+    'wl.pairs':            'Credential Pairs',
+    'wl.novel_passwords':  'Novel Passwords',
     'wl.entries':       'entries',
     'wl.period':        'period',
     'wl.size':          '~size (gz)',
-    'wl.preview':       'preview — top 5 by frequency',
-    'wl.preview.pairs': 'preview — top 5 by frequency (user:pass format)',
+    'wl.preview':                'preview — top 5 by frequency',
+    'wl.preview.pairs':          'preview — top 5 by frequency (user:pass format)',
+    'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
     'wl.empty':         'no data collected yet',
 
     'meta.success_pct':  n => `${n}% success rate`,
@@ -153,6 +157,8 @@ const STRINGS = {
     'card.unique_usernames.meta': 'usuários distintos coletados',
     'card.malware_hashes':        'Hashes de Malware',
     'card.malware_hashes.meta':   'hashes de arquivos coletados',
+    'card.novel_passwords':       'Senhas Novas',
+    'card.novel_passwords.meta':  'não estão em listas comuns',
 
     'section.overview':        'Visão Geral',
     'section.timeseries':      'Tentativas de Login ao Longo do Tempo',
@@ -238,14 +244,16 @@ const STRINGS = {
     'wl.period.weekly':  'Semanal',
     'wl.period.monthly': 'Mensal',
     'wl.period.all':     'Tudo',
-    'wl.usernames':     'Usuários',
-    'wl.passwords':     'Senhas',
-    'wl.pairs':         'Pares de Credenciais',
+    'wl.usernames':        'Usuários',
+    'wl.passwords':        'Senhas',
+    'wl.pairs':            'Pares de Credenciais',
+    'wl.novel_passwords':  'Senhas Novas',
     'wl.entries':       'entradas',
     'wl.period':        'período',
     'wl.size':          '~tamanho (gz)',
-    'wl.preview':       'prévia — top 20 por frequência',
-    'wl.preview.pairs': 'prévia — top 20 por frequência (formato usuário:senha)',
+    'wl.preview':                'prévia — top 20 por frequência',
+    'wl.preview.pairs':          'prévia — top 20 por frequência (formato usuário:senha)',
+    'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
     'wl.empty':         'nenhum dado coletado ainda',
 
     'meta.success_pct':  n => `${n}% taxa de sucesso`,
@@ -515,7 +523,8 @@ function renderAll(d) {
   counter($('v-downloads'),        overview.downloads);
   if (overview.unique_passwords     != null) counter($('v-unique-passwords'),  overview.unique_passwords);
   if (overview.unique_usernames     != null) counter($('v-unique-usernames'),  overview.unique_usernames);
-  if (overview.unique_malware_hashes != null) counter($('v-malware-hashes'), overview.unique_malware_hashes);
+  if (overview.unique_malware_hashes != null) counter($('v-malware-hashes'),    overview.unique_malware_hashes);
+  if (overview.novel_passwords       != null) counter($('v-novel-passwords'),   overview.novel_passwords);
 
   $('m-auth').textContent     = tf('meta.success_pct', overview.success_pct);
   $('m-commands').textContent = tf('meta.cmd_sessions', overview.cmd_sessions);

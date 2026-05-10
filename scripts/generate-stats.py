@@ -14,7 +14,13 @@ from pathlib import Path
 import psycopg2
 import psycopg2.extras
 
-STATS_DIR = os.environ.get("STATS_DIR", "/stats")
+STATS_DIR    = os.environ.get("STATS_DIR",    "/stats")
+WORDLIST_DIR = os.environ.get("WORDLIST_DIR", "/wordlists")
+
+WINDOW_TO_WL_PERIOD = {
+    "1h": "daily", "6h": "daily", "24h": "daily",
+    "7d": "weekly", "30d": "monthly", "all": "alltime",
+}
 
 WINDOWS = {
     "1h":  timedelta(hours=1),
@@ -202,6 +208,15 @@ def _safe_compute_web(conn, window):
                 "top_usernames": [], "top_passwords": [],
                 "visit_log": [], "submission_log": []}
 
+def count_novel_passwords(window):
+    period = WINDOW_TO_WL_PERIOD[window]
+    path = Path(WORDLIST_DIR) / period / "novel_passwords.txt"
+    try:
+        with open(path, "rb") as f:
+            return sum(1 for _ in f)
+    except FileNotFoundError:
+        return None
+
 
 def compute(conn, window):
     delta = WINDOWS[window]
@@ -381,6 +396,8 @@ def compute(conn, window):
             for r in cur.fetchall()
         ]
 
+    novel_passwords = count_novel_passwords(window)
+
     return {
         "window":        window,
         "generated_at":  now.isoformat(),
@@ -392,9 +409,10 @@ def compute(conn, window):
             "unique_ips":      unique_ips,
             "downloads":       dl_count,
             "success_pct":     success_pct,
-            "unique_passwords":     unique_passwords,
-            "unique_usernames":     unique_usernames,
+            "unique_passwords":      unique_passwords,
+            "unique_usernames":      unique_usernames,
             "unique_malware_hashes": unique_malware_hashes,
+            "novel_passwords":       novel_passwords,
         },
         "top_usernames":   top_usernames,
         "top_passwords":   top_passwords,

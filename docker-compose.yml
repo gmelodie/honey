@@ -62,14 +62,32 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - STATS_DIR=/stats
+      - WORDLIST_DIR=/wordlists
     volumes:
       - ./scripts/generate-stats.py:/generate-stats.py:ro
       - ./scripts/stats-gen.sh:/stats-gen.sh:ro
       - stats:/stats
+      - wordlists:/wordlists:ro
     entrypoint: ["/bin/sh", "/stats-gen.sh"]
     depends_on:
       postgres-init:
         condition: service_completed_successfully
+
+  # Bloom filter builder — runs once on startup, skips if filter already exists
+  bloom-init:
+    image: python:3.12-slim
+    restart: "no"
+    network_mode: host
+    environment:
+      - BLOOM_DIR=/bloom
+      # Space-separated URLs to download and build the filter from.
+      # Override in .env to add WeakPass or other sources.
+      - BLOOM_WORDLIST_URLS=${BLOOM_WORDLIST_URLS:-https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/xato-net-10-million-passwords-1000000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt}
+    volumes:
+      - ./scripts/build-bloom-filters.py:/build-bloom-filters.py:ro
+      - ./scripts/bloom-init.sh:/bloom-init.sh:ro
+      - bloom:/bloom
+    entrypoint: ["/bin/sh", "/bloom-init.sh"]
 
   # Wordlist generator — runs on startup then every 6 hours via cron
   wordlist-gen:
@@ -84,12 +102,16 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - WORDLIST_DIR=/wordlists
+      - BLOOM_DIR=/bloom
     volumes:
       - ./scripts/generate-wordlists.py:/generate-wordlists.py:ro
       - ./scripts/wordlist-gen.sh:/wordlist-gen.sh:ro
       - wordlists:/wordlists
+      - bloom:/bloom
     entrypoint: ["/bin/sh", "/wordlist-gen.sh"]
     depends_on:
+      bloom-init:
+        condition: service_completed_successfully
       postgres-init:
         condition: service_completed_successfully
 
@@ -168,3 +190,4 @@ volumes:
   postgres-data:
   wordlists:
   stats:
+  bloom:

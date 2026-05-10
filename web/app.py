@@ -72,9 +72,10 @@ WL_PERIODS = {
 
 # Maps URL wtype param -> filename used by generate-wordlists.py
 WL_FILES = {
-    "usernames": "usernames.txt",
-    "passwords": "passwords.txt",
-    "pairs":     "passwords_usernames.txt",
+    "usernames":       "usernames.txt",
+    "passwords":       "passwords.txt",
+    "pairs":           "passwords_usernames.txt",
+    "novel_passwords": "novel_passwords.txt",
 }
 
 
@@ -139,10 +140,11 @@ def wordlist_meta():
         }
 
     return jsonify({
-        "period":    period,
-        "usernames": info("usernames"),
-        "passwords": info("passwords"),
-        "pairs":     info("pairs"),
+        "period":          period,
+        "usernames":       info("usernames"),
+        "passwords":       info("passwords"),
+        "pairs":           info("pairs"),
+        "novel_passwords": info("novel_passwords"),
     })
 
 
