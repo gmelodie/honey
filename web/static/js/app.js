@@ -34,7 +34,6 @@ const STRINGS = {
     'section.timeseries':      'Login Attempts Over Time',
     'section.timing':          'Timing Patterns',
     'section.credentials':     'Top Credentials',
-    'section.password_hashes': 'Password Hashes',
     'section.pairs':           'Top Credential Pairs',
     'section.clients':         'SSH Client Versions',
     'section.downloads':       'Downloads',
@@ -164,7 +163,6 @@ const STRINGS = {
     'section.timeseries':      'Tentativas de Login ao Longo do Tempo',
     'section.timing':          'Padrões Temporais',
     'section.credentials':     'Credenciais Mais Usadas',
-    'section.password_hashes': 'Hashes de Senhas',
     'section.pairs':           'Pares de Credenciais Mais Usados',
     'section.clients':         'Versões de Cliente SSH',
     'section.downloads':       'Downloads',
@@ -596,13 +594,6 @@ function renderAll(d) {
       d.top_urls.map(r => Number(r.downloads)),
       GBX.yellow + 'cc');
   }
-
-  fillTable('tbl-password-hashes', d.password_hashes || [], r =>
-    `<td class="rank">${r._rank}</td>
-     <td class="mono">${esc(r.password)}</td>
-     <td class="mono truncate" title="${esc(r.sha256)}">${esc(r.sha256)}</td>
-     <td class="num mono">${r.attempts}</td>`
-  );
 
   fillTable('tbl-pairs', d.top_pairs, r =>
     `<td class="rank">${r._rank}</td>

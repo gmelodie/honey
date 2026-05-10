@@ -4,7 +4,6 @@ Precompute /api/stats for all time windows and write to STATS_DIR/{window}.json.
 Run on a schedule (e.g. every 5 minutes); the web server serves the cached files.
 """
 
-import hashlib
 import json
 import os
 import sys
@@ -280,20 +279,6 @@ def compute(conn, window):
         top_passwords = rows(cur)
 
         cur.execute(f"""
-            SELECT a.password, count(*) AS attempts
-            FROM auth a WHERE {ac}
-            GROUP BY a.password ORDER BY attempts DESC LIMIT 100
-        """, ap)
-        password_hashes = [
-            {
-                "password": r["password"],
-                "sha256": hashlib.sha256((r["password"] or "").encode()).hexdigest(),
-                "attempts": int(r["attempts"]),
-            }
-            for r in cur.fetchall()
-        ]
-
-        cur.execute(f"""
             SELECT a.username, a.password, count(*) AS attempts
             FROM auth a WHERE {ac}
             GROUP BY a.username, a.password ORDER BY attempts DESC LIMIT 25
@@ -416,7 +401,6 @@ def compute(conn, window):
         },
         "top_usernames":   top_usernames,
         "top_passwords":   top_passwords,
-        "password_hashes": password_hashes,
         "top_pairs":       top_pairs,
         "timeseries":    timeseries,
         "by_hour":       by_hour,
