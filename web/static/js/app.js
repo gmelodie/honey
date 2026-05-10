@@ -118,11 +118,16 @@ const STRINGS = {
     'wl.pairs':            'Credential Pairs',
     'wl.novel_passwords':  'Novel Passwords',
     'wl.entries':       'entries',
+    'wl.rules':         'rules',
     'wl.period':        'period',
     'wl.size':          '~size (gz)',
+    'wl.size_plain':    'size',
+    'wl.hashcat_rules': 'Hashcat Rules',
+    'wl.john_rules':    'John Rules',
     'wl.preview':                'preview — top 5 by frequency',
     'wl.preview.pairs':          'preview — top 5 by frequency (user:pass format)',
     'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
+    'wl.preview.rules':          'preview — top observed mutations',
     'wl.empty':         'no data collected yet',
 
     'meta.success_pct':  n => `${n}% success rate`,
@@ -247,11 +252,16 @@ const STRINGS = {
     'wl.pairs':            'Pares de Credenciais',
     'wl.novel_passwords':  'Senhas Novas',
     'wl.entries':       'entradas',
+    'wl.rules':         'regras',
     'wl.period':        'período',
     'wl.size':          '~tamanho (gz)',
+    'wl.size_plain':    'tamanho',
+    'wl.hashcat_rules': 'Regras Hashcat',
+    'wl.john_rules':    'Regras John',
     'wl.preview':                'prévia — top 20 por frequência',
     'wl.preview.pairs':          'prévia — top 20 por frequência (formato usuário:senha)',
     'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
+    'wl.preview.rules':          'prévia — mutações mais observadas',
     'wl.empty':         'nenhum dado coletado ainda',
 
     'meta.success_pct':  n => `${n}% taxa de sucesso`,
@@ -774,21 +784,34 @@ async function loadWordlists() {
   }
 }
 
+const RULE_WTYPES = new Set(['hashcat_rules', 'john_rules']);
+
 function renderWordlists(data) {
   for (const [wtype, info] of Object.entries(data)) {
     const countEl  = $(`wl-count-${wtype}`);
-    const periodEl = $(`wl-period-${wtype}`);
     const sizeEl   = $(`wl-size-${wtype}`);
     const listEl   = $(`wl-preview-${wtype}`);
     if (!countEl) continue;
 
-    countEl.textContent  = info.total ? info.total.toLocaleString() : '0';
-    periodEl.textContent = info.oldest ? fmtPeriod(info.oldest, info.newest) : (info.ready ? t(`wl.period.${data.period}`) : t('period.nodata'));
-    sizeEl.textContent   = info.gz_size || '—';
+    const isRule = RULE_WTYPES.has(wtype);
 
-    listEl.innerHTML = (!info.preview || !info.preview.length)
-      ? `<div class="wl-empty">${t('wl.empty')}</div>`
-      : info.preview.map(v => `<div class="wl-preview-entry">${esc(v)}</div>`).join('');
+    countEl.textContent = info.total ? info.total.toLocaleString() : '0';
+    if (sizeEl) sizeEl.textContent = isRule ? (info.size || '—') : (info.gz_size || '—');
+
+    if (!isRule) {
+      const periodEl = $(`wl-period-${wtype}`);
+      if (periodEl) {
+        periodEl.textContent = info.oldest
+          ? fmtPeriod(info.oldest, info.newest)
+          : (info.ready ? t(`wl.period.${data.period}`) : t('period.nodata'));
+      }
+    }
+
+    if (listEl) {
+      listEl.innerHTML = (!info.preview || !info.preview.length)
+        ? `<div class="wl-empty">${t('wl.empty')}</div>`
+        : info.preview.map(v => `<div class="wl-preview-entry">${esc(v)}</div>`).join('');
+    }
   }
 }
 
