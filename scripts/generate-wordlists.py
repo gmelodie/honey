@@ -19,6 +19,8 @@ import psycopg2
 from datetime import datetime, timezone
 
 WORDLIST_DIR = os.environ.get("WORDLIST_DIR", "/wordlists")
+BLOOM_DIR    = os.environ.get("BLOOM_DIR", "/bloom")
+BLOOM_PATH   = os.path.join(BLOOM_DIR, "reference.bloom")
 
 WINDOWS = {
     "daily":   "NOW() - INTERVAL '1 day'",
@@ -26,6 +28,21 @@ WINDOWS = {
     "monthly": "NOW() - INTERVAL '30 days'",
     "alltime": None,
 }
+
+
+def load_bloom_filter():
+    try:
+        from pybloom_live import ScalableBloomFilter
+    except ImportError:
+        return None
+    if not os.path.exists(BLOOM_PATH):
+        return None
+    with open(BLOOM_PATH, "rb") as f:
+        return ScalableBloomFilter.fromfile(f)
+
+
+def filter_novel(passwords, bloom):
+    return [p for p in passwords if p not in bloom]
 
 
 def connect():
@@ -79,6 +96,10 @@ def main():
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     print(f"[{ts}] Starting wordlist generation...")
 
+    bloom = load_bloom_filter()
+    if bloom is None:
+        print(f"[{ts}] No Bloom filter at {BLOOM_PATH}; novel_passwords.txt will be skipped.")
+
     try:
         conn = connect()
     except Exception as e:
@@ -98,11 +119,18 @@ def main():
             write_wordlist(os.path.join(subdir, "usernames.txt"), usernames)
             write_wordlist(os.path.join(subdir, "passwords_usernames.txt"), pairs)
 
+            novel_count = 0
+            if bloom is not None:
+                novel = filter_novel(passwords, bloom)
+                write_wordlist(os.path.join(subdir, "novel_passwords.txt"), novel)
+                novel_count = len(novel)
+
             print(
                 f"[{ts}] {window}: "
                 f"{len(passwords)} passwords, "
                 f"{len(usernames)} usernames, "
                 f"{len(pairs)} pairs"
+                + (f", {novel_count} novel" if bloom is not None else "")
             )
 
     conn.close()
