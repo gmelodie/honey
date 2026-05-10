@@ -36,7 +36,7 @@ BUCKET = {
 
 
 def connect():
-    return psycopg2.connect(
+    conn = psycopg2.connect(
         host=os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         port=os.environ.get("POSTGRES_PORT", "5432"),
         dbname=os.environ["POSTGRES_DB"],
@@ -44,6 +44,8 @@ def connect():
         password=os.environ["POSTGRES_PASSWORD"],
         sslmode="disable",
     )
+    conn.autocommit = True
+    return conn
 
 
 def cond(col, since):
@@ -54,6 +56,151 @@ def cond(col, since):
 
 def rows(cur):
     return [dict(r) for r in cur.fetchall()]
+
+
+def compute_web(conn, window):
+    delta = WINDOWS[window]
+    now = datetime.now(timezone.utc)
+    since = None if delta is None else now - delta
+
+    vc, vp = cond("v.timestamp", since)
+    fc, fp = cond("f.timestamp", since)
+    bucket = BUCKET[window].format(col="v.timestamp")
+
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(f"SELECT count(*) AS v FROM web_visits v WHERE {vc}", vp)
+        web_visits = int(cur.fetchone()["v"])
+
+        cur.execute(f"SELECT count(DISTINCT v.ip) AS v FROM web_visits v WHERE {vc}", vp)
+        web_unique_ips = int(cur.fetchone()["v"])
+
+        cur.execute(f"SELECT count(*) AS v FROM web_form_submissions f WHERE {fc}", fp)
+        web_submissions = int(cur.fetchone()["v"])
+
+        cur.execute(f"SELECT count(DISTINCT v.path) AS v FROM web_visits v WHERE {vc}", vp)
+        web_unique_paths = int(cur.fetchone()["v"])
+
+        cur.execute(f"SELECT count(DISTINCT v.user_agent) AS v FROM web_visits v WHERE {vc} AND v.user_agent != ''", vp)
+        web_unique_uas = int(cur.fetchone()["v"])
+
+        cur.execute(f"""
+            SELECT v.path, count(*) AS visits
+            FROM web_visits v WHERE {vc}
+            GROUP BY v.path ORDER BY visits DESC LIMIT 20
+        """, vp)
+        web_top_paths = rows(cur)
+
+        cur.execute(f"""
+            SELECT v.ip, count(*) AS visits
+            FROM web_visits v WHERE {vc}
+            GROUP BY v.ip ORDER BY visits DESC LIMIT 20
+        """, vp)
+        web_top_ips = rows(cur)
+
+        cur.execute(f"""
+            SELECT v.user_agent, count(*) AS visits
+            FROM web_visits v WHERE {vc} AND v.user_agent != ''
+            GROUP BY v.user_agent ORDER BY visits DESC LIMIT 20
+        """, vp)
+        web_top_uas = rows(cur)
+
+        cur.execute(f"""
+            SELECT v.method, count(*) AS visits
+            FROM web_visits v WHERE {vc}
+            GROUP BY v.method ORDER BY visits DESC
+        """, vp)
+        web_methods = rows(cur)
+
+        cur.execute(f"""
+            SELECT v.referrer, count(*) AS visits
+            FROM web_visits v WHERE {vc} AND v.referrer != ''
+            GROUP BY v.referrer ORDER BY visits DESC LIMIT 15
+        """, vp)
+        web_top_referrers = rows(cur)
+
+        cur.execute(f"""
+            SELECT {bucket} AS t, count(*) AS visits,
+                   count(f.id) AS submissions
+            FROM web_visits v
+            LEFT JOIN web_form_submissions f ON f.visit_id = v.id
+            WHERE {vc}
+            GROUP BY 1 ORDER BY 1
+        """, vp)
+        web_timeseries = [
+            {"t": r["t"].isoformat(), "visits": int(r["visits"]), "submissions": int(r["submissions"])}
+            for r in cur.fetchall()
+        ]
+
+        cur.execute(f"""
+            SELECT f.form_data->>'username' AS username, count(*) AS attempts
+            FROM web_form_submissions f WHERE {fc}
+              AND f.form_data->>'username' IS NOT NULL
+              AND f.form_data->>'username' != ''
+            GROUP BY username ORDER BY attempts DESC LIMIT 20
+        """, fp)
+        web_top_usernames = rows(cur)
+
+        cur.execute(f"""
+            SELECT f.form_data->>'password' AS password, count(*) AS attempts
+            FROM web_form_submissions f WHERE {fc}
+              AND f.form_data->>'password' IS NOT NULL
+              AND f.form_data->>'password' != ''
+            GROUP BY password ORDER BY attempts DESC LIMIT 20
+        """, fp)
+        web_top_passwords = rows(cur)
+
+        cur.execute(f"""
+            SELECT v.timestamp AS time, v.ip, v.method, v.path, v.user_agent
+            FROM web_visits v WHERE {vc}
+            ORDER BY v.timestamp DESC LIMIT 100
+        """, vp)
+        web_visit_log = [
+            {"time": r["time"].isoformat(), "ip": r["ip"],
+             "method": r["method"], "path": r["path"], "user_agent": r["user_agent"]}
+            for r in cur.fetchall()
+        ]
+
+        cur.execute(f"""
+            SELECT f.timestamp AS time, v.ip, f.form_data
+            FROM web_form_submissions f JOIN web_visits v ON f.visit_id = v.id
+            WHERE {fc}
+            ORDER BY f.timestamp DESC LIMIT 50
+        """, fp)
+        web_submission_log = [
+            {"time": r["time"].isoformat(), "ip": r["ip"], "form_data": r["form_data"]}
+            for r in cur.fetchall()
+        ]
+
+    return {
+        "overview": {
+            "visits":          web_visits,
+            "unique_ips":      web_unique_ips,
+            "submissions":     web_submissions,
+            "unique_paths":    web_unique_paths,
+            "unique_uas":      web_unique_uas,
+        },
+        "top_paths":       web_top_paths,
+        "top_ips":         web_top_ips,
+        "top_uas":         web_top_uas,
+        "methods":         web_methods,
+        "top_referrers":   web_top_referrers,
+        "timeseries":      web_timeseries,
+        "top_usernames":   web_top_usernames,
+        "top_passwords":   web_top_passwords,
+        "visit_log":       web_visit_log,
+        "submission_log":  web_submission_log,
+    }
+
+
+def _safe_compute_web(conn, window):
+    try:
+        return compute_web(conn, window)
+    except Exception as e:
+        print(f"WARNING: web stats skipped: {e}", file=sys.stderr)
+        return {"overview": {}, "top_paths": [], "top_ips": [], "top_uas": [],
+                "methods": [], "top_referrers": [], "timeseries": [],
+                "top_usernames": [], "top_passwords": [],
+                "visit_log": [], "submission_log": []}
 
 
 def compute(conn, window):
@@ -262,6 +409,7 @@ def compute(conn, window):
         "auth_log":             auth_log,
         "dl_log":               dl_log,
         "malware_hashes_detail": malware_hashes_detail,
+        "web": _safe_compute_web(conn, window),
     }
 
 

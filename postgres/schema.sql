@@ -61,3 +61,24 @@ CREATE TABLE IF NOT EXISTS keyfingerprints (
     username TEXT,
     fingerprint VARCHAR(100)
 );
+
+-- ── Web honeypot ──────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS web_visits (
+    id SERIAL PRIMARY KEY,
+    ip VARCHAR(45),
+    "timestamp" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    method VARCHAR(10),
+    path TEXT,
+    query_string TEXT,
+    user_agent TEXT,
+    referrer TEXT,
+    headers JSONB
+);
+
+CREATE TABLE IF NOT EXISTS web_form_submissions (
+    id SERIAL PRIMARY KEY,
+    visit_id INTEGER REFERENCES web_visits(id),
+    "timestamp" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    form_data JSONB
+);
