@@ -49,6 +49,19 @@ services:
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
+  # GeoIP database downloader — runs once, skips if databases already present
+  geoip-init:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.geoip-init
+    restart: "no"
+    environment:
+      - GEOIP_DIR=/geoip
+    volumes:
+      - ./scripts/geoip-init.sh:/geoip-init.sh:ro
+      - geoip:/geoip
+    entrypoint: ["/bin/sh", "/geoip-init.sh"]
+
   # Stats generator — runs on startup then every 5 minutes
   stats-gen:
     build:
@@ -65,14 +78,19 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - STATS_DIR=/stats
       - WORDLIST_DIR=/wordlists
+      - GEOIP_COUNTRY_DB=/geoip/country.mmdb
+      - GEOIP_ASN_DB=/geoip/asn.mmdb
     volumes:
       - ./scripts/generate-stats.py:/generate-stats.py:ro
       - ./scripts/stats-gen.sh:/stats-gen.sh:ro
       - stats:/stats
       - wordlists:/wordlists:ro
+      - geoip:/geoip:ro
     entrypoint: ["/bin/sh", "/stats-gen.sh"]
     depends_on:
       postgres-init:
+        condition: service_completed_successfully
+      geoip-init:
         condition: service_completed_successfully
 
   # Bloom filter builder — runs once on startup, skips if filter already exists
@@ -197,3 +215,4 @@ volumes:
   wordlists:
   stats:
   bloom:
+  geoip:

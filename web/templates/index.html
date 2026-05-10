@@ -118,6 +118,12 @@
 
       <div id="stats-root" hidden>
 
+        <!-- ── Campaign alerts ── -->
+        <section class="section" id="section-campaigns" hidden>
+          <h2 class="section-heading" data-i18n="section.campaigns">&#9888; Active Campaign Alerts</h2>
+          <div id="campaign-alerts-list"></div>
+        </section>
+
         <!-- ── Overview cards ── -->
         <section class="section">
           <h2 class="section-heading" data-i18n="section.overview">Overview</h2>
@@ -273,6 +279,34 @@
                 <th data-i18n="th.rank">#</th>
                 <th data-i18n="th.client">Client String</th>
                 <th data-i18n="th.connections">Connections</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── Attack origins (geo / ASN) ── -->
+        <section class="section" id="section-geo">
+          <h2 class="section-heading" data-i18n="section.geo">Attack Origins</h2>
+          <div class="charts-row">
+            <div class="chart-card">
+              <h3 class="chart-title" data-i18n="chart.countries">Top Countries</h3>
+              <div class="chart-body" style="height:280px"><canvas id="chart-countries"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title" data-i18n="chart.asns">Top ASNs</h3>
+              <div class="chart-body" style="height:280px"><canvas id="chart-asns"></canvas></div>
+            </div>
+          </div>
+          <div class="tbl-wrap" id="section-new-asns" style="margin-top:16px">
+            <h3 class="chart-title" data-i18n="section.new_asns" style="padding:10px 14px 6px">New ASNs This Window</h3>
+            <table class="data-tbl" id="tbl-new-asns">
+              <thead><tr>
+                <th data-i18n="th.rank">#</th>
+                <th>ASN</th>
+                <th data-i18n="th.asn_org">Organization</th>
+                <th data-i18n="th.first_seen">First Seen</th>
+                <th data-i18n="th.attempts">Attempts</th>
               </tr></thead>
               <tbody></tbody>
             </table>

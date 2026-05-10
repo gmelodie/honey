@@ -30,6 +30,15 @@ const STRINGS = {
     'card.novel_passwords':       'Novel Passwords',
     'card.novel_passwords.meta':  'not in common lists',
 
+    'section.campaigns':    'Active Campaign Alerts',
+    'section.geo':          'Attack Origins',
+    'section.new_asns':     'New ASNs This Window',
+    'chart.countries':      'Top Countries',
+    'chart.asns':           'Top ASNs',
+    'th.asn_org':           'Organization',
+    'campaign.pattern.novel':       'Novel credentials — possible new tool',
+    'campaign.pattern.established': 'Established credentials — known botnet',
+
     'section.overview':        'Overview',
     'section.timeseries':      'Login Attempts Over Time',
     'section.timing':          'Timing Patterns',
@@ -158,6 +167,15 @@ const STRINGS = {
     'card.malware_hashes.meta':   'hashes de arquivos coletados',
     'card.novel_passwords':       'Senhas Novas',
     'card.novel_passwords.meta':  'não estão em listas comuns',
+
+    'section.campaigns':    'Alertas de Campanha Ativa',
+    'section.geo':          'Origens dos Ataques',
+    'section.new_asns':     'Novos ASNs Neste Período',
+    'chart.countries':      'Top Países',
+    'chart.asns':           'Top ASNs',
+    'th.asn_org':           'Organização',
+    'campaign.pattern.novel':       'Credenciais novas — possível nova ferramenta',
+    'campaign.pattern.established': 'Credenciais conhecidas — botnet estabelecido',
 
     'section.overview':        'Visão Geral',
     'section.timeseries':      'Tentativas de Login ao Longo do Tempo',
@@ -737,6 +755,91 @@ function renderAll(d) {
      <td class="mono">${esc(fd.username || '—')}</td>
      <td class="mono">${esc(fd.password || '—')}</td>`;
   });
+
+  // ── Geo / ASN ─────────────────────────────────────────────────────────────
+  const geo = d.geo || {};
+  const hasGeo = (geo.top_countries && geo.top_countries.length) ||
+                 (geo.top_asns && geo.top_asns.length);
+  $('section-geo').hidden = !hasGeo;
+
+  if (geo.top_countries && geo.top_countries.length) {
+    activeCharts['geo-countries'] = hbarChart('chart-countries',
+      geo.top_countries.map(r => `${r.country_iso} — ${r.country_name || r.country_iso}`),
+      geo.top_countries.map(r => r.sessions),
+      GBX.blue + 'cc');
+  }
+
+  if (geo.top_asns && geo.top_asns.length) {
+    activeCharts['geo-asns'] = hbarChart('chart-asns',
+      geo.top_asns.map(r => r.asn_org ? `AS${r.asn} ${r.asn_org}` : `AS${r.asn}`),
+      geo.top_asns.map(r => r.sessions),
+      GBX.orange + 'cc');
+  }
+
+  const newAsns = geo.new_asns || [];
+  $('section-new-asns').hidden = !newAsns.length;
+  fillTable('tbl-new-asns', newAsns, r =>
+    `<td class="rank">${r._rank}</td>
+     <td class="mono">AS${r.asn}</td>
+     <td class="mono truncate">${esc(r.asn_org || '—')}</td>
+     <td class="mono">${fmtTs(r.first_seen)}</td>
+     <td class="num mono">${Number(r.attempts).toLocaleString()}</td>`
+  );
+
+  // ── Campaign alerts ───────────────────────────────────────────────────────
+  const campaigns = d.campaigns || [];
+  $('section-campaigns').hidden = !campaigns.length;
+
+  if (campaigns.length) {
+    $('campaign-alerts-list').innerHTML = campaigns.map(c => {
+      const isNovel      = c.credential_pattern === 'novel';
+      const patternLabel = t(isNovel ? 'campaign.pattern.novel' : 'campaign.pattern.established');
+      const asnRows = (c.new_asns || []).map(a =>
+        `<tr>
+          <td class="mono">AS${a.asn}</td>
+          <td class="mono truncate">${esc(a.asn_org || '—')}</td>
+          <td class="num mono">${Number(a.attempts).toLocaleString()}</td>
+        </tr>`
+      ).join('');
+      return `
+        <div class="campaign-card">
+          <div class="campaign-header">
+            <span class="campaign-label">CAMPAIGN #${c.id}</span>
+            <span class="campaign-badge ${isNovel ? 'badge-campaign-novel' : 'badge-campaign-established'}">${esc(patternLabel)}</span>
+          </div>
+          <div class="campaign-stats">
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Onset</span>
+              <span class="campaign-stat-val mono">${fmtTs(c.onset_time)}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Z-Score</span>
+              <span class="campaign-stat-val mono" style="color:var(--c-red)">${c.z_score.toFixed(2)}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Peak/hr</span>
+              <span class="campaign-stat-val mono">${Math.round(c.peak_rate_per_hour).toLocaleString()}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Baseline/hr</span>
+              <span class="campaign-stat-val mono">${Math.round(c.baseline_rate_per_hour).toLocaleString()}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">New ASNs</span>
+              <span class="campaign-stat-val mono">${c.new_asn_count}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">New-ASN Traffic</span>
+              <span class="campaign-stat-val mono">${Math.round(c.spike_ratio * 100)}%</span>
+            </div>
+          </div>
+          ${asnRows ? `<table class="data-tbl" style="margin-top:10px">
+            <thead><tr><th>ASN</th><th data-i18n="th.asn_org">Organization</th><th data-i18n="th.attempts">Attempts</th></tr></thead>
+            <tbody>${asnRows}</tbody>
+          </table>` : ''}
+        </div>`;
+    }).join('');
+  }
 }
 
 // ── Wordlists ─────────────────────────────────────────────────────────────
