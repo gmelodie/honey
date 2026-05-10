@@ -123,6 +123,7 @@ const STRINGS = {
     'wl.preview':                'preview — top 5 by frequency',
     'wl.preview.pairs':          'preview — top 5 by frequency (user:pass format)',
     'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
+    'wl.novel_passwords.tip': 'Passwords not found in common reference wordlists — filtered against xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, and darkweb 2017 top 10 k.',
     'wl.empty':         'no data collected yet',
 
     'meta.success_pct':  n => `${n}% success rate`,
@@ -252,6 +253,7 @@ const STRINGS = {
     'wl.preview':                'prévia — top 20 por frequência',
     'wl.preview.pairs':          'prévia — top 20 por frequência (formato usuário:senha)',
     'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
+    'wl.novel_passwords.tip': 'Senhas não encontradas em listas de referência comuns — filtradas contra xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k e darkweb 2017 top 10 k.',
     'wl.empty':         'nenhum dado coletado ainda',
 
     'meta.success_pct':  n => `${n}% taxa de sucesso`,
@@ -281,6 +283,11 @@ function applyLang(lang) {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const val = t(el.dataset.i18n);
     if (typeof val === 'string') el.textContent = val;
+  });
+
+  document.querySelectorAll('[data-i18n-tip]').forEach(el => {
+    const val = t(el.dataset.i18nTip);
+    if (typeof val === 'string') el.dataset.tip = val;
   });
 
   document.querySelectorAll('.lang-tab').forEach(b => {

@@ -238,6 +238,28 @@ body { min-height: 100vh; overflow-x: hidden; }
 .icon-btn svg { width: 13px; height: 13px; }
 .icon-btn:hover { border-color: var(--c-green); color: var(--fg); }
 
+.info-tip {
+  position: relative; display: inline-flex; align-items: center;
+  vertical-align: middle; margin-left: 5px; cursor: default;
+  color: var(--fg-dim);
+}
+.info-tip svg { width: 13px; height: 13px; }
+.info-tip::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 7px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--fg); font-size: .68rem; line-height: 1.45;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 7px 10px; border-radius: 4px;
+  width: 230px; white-space: normal;
+  box-shadow: var(--shadow);
+  opacity: 0; pointer-events: none;
+  transition: opacity .12s;
+  z-index: 200;
+}
+.info-tip:hover::after { opacity: 1; }
+
 /* ── Content ─────────────────────────────────────────────────────────── */
 .content { flex: 1; padding: 24px 20px; max-width: 1320px; margin: 0 auto; width: 100%; }
 
