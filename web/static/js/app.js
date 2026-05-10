@@ -39,7 +39,38 @@ const STRINGS = {
     'section.clients':         'SSH Client Versions',
     'section.downloads':       'Downloads',
     'section.malware_hashes':  'Malware Hashes',
+    'section.web':             'HTTP Honeypot',
+    'section.web_timeseries':  'HTTP Traffic Over Time',
+    'section.web_creds':       'Form Submission Credentials',
+    'section.web_uas':         'HTTP User Agents',
     'section.logs':            'Activity Logs',
+
+    'card.web_visits':          'HTTP Visits',
+    'card.web_visits.meta':     'total HTTP requests logged',
+    'card.web_ips':             'Unique IPs',
+    'card.web_ips.meta':        'distinct web attacker IPs',
+    'card.web_submissions':     'Login Attempts',
+    'card.web_submissions.meta':'form submissions captured',
+    'card.web_paths':           'Unique Paths',
+    'card.web_paths.meta':      'distinct URLs probed',
+    'card.web_uas':             'Unique User Agents',
+    'card.web_uas.meta':        'distinct HTTP clients seen',
+
+    'chart.web_paths':      'Top Requested Paths',
+    'chart.web_ips':        'Top Source IPs',
+    'chart.web_usernames':  'Usernames',
+    'chart.web_passwords':  'Passwords',
+
+    'legend.visits':      'Visits',
+    'legend.submissions': 'Login Attempts',
+
+    'th.user_agent': 'User Agent',
+    'th.visits':     'Visits',
+    'th.method':     'Method',
+    'th.path':       'Path',
+
+    'tab.web_visits':      'HTTP Visits',
+    'tab.web_submissions': 'Form Submissions',
 
     'th.first_seen':   'First Seen',
     'th.downloads':    'Downloads',
@@ -138,7 +169,38 @@ const STRINGS = {
     'section.clients':         'Versões de Cliente SSH',
     'section.downloads':       'Downloads',
     'section.malware_hashes':  'Hashes de Malware',
+    'section.web':             'Honeypot HTTP',
+    'section.web_timeseries':  'Tráfego HTTP ao Longo do Tempo',
+    'section.web_creds':       'Credenciais de Formulários',
+    'section.web_uas':         'User Agents HTTP',
     'section.logs':            'Registros de Atividade',
+
+    'card.web_visits':          'Visitas HTTP',
+    'card.web_visits.meta':     'requisições HTTP registradas',
+    'card.web_ips':             'IPs Únicos',
+    'card.web_ips.meta':        'IPs de atacantes web distintos',
+    'card.web_submissions':     'Tentativas de Login',
+    'card.web_submissions.meta':'formulários capturados',
+    'card.web_paths':           'Caminhos Únicos',
+    'card.web_paths.meta':      'URLs sondadas distintas',
+    'card.web_uas':             'User Agents Únicos',
+    'card.web_uas.meta':        'clientes HTTP distintos',
+
+    'chart.web_paths':      'Caminhos Mais Requisitados',
+    'chart.web_ips':        'IPs de Origem',
+    'chart.web_usernames':  'Usuários',
+    'chart.web_passwords':  'Senhas',
+
+    'legend.visits':      'Visitas',
+    'legend.submissions': 'Tentativas de Login',
+
+    'th.user_agent': 'User Agent',
+    'th.visits':     'Visitas',
+    'th.method':     'Método',
+    'th.path':       'Caminho',
+
+    'tab.web_visits':      'Visitas HTTP',
+    'tab.web_submissions': 'Envios de Formulário',
 
     'th.first_seen':   'Primeira Vez',
     'th.downloads':    'Downloads',
@@ -587,6 +649,103 @@ function renderAll(d) {
      <td class="num mono">${r.downloads}</td>
      <td class="mono">${fmtTs(r.first_seen)}</td>`
   );
+
+  // ── Web honeypot ──────────────────────────────────────────────────────────
+  const web = d.web || {};
+  const wo  = web.overview || {};
+
+  if (wo.visits      != null) counter($('v-web-visits'),       wo.visits);
+  if (wo.unique_ips  != null) counter($('v-web-ips'),          wo.unique_ips);
+  if (wo.submissions != null) counter($('v-web-submissions'),  wo.submissions);
+  if (wo.unique_paths != null) counter($('v-web-paths'),       wo.unique_paths);
+  if (wo.unique_uas  != null) counter($('v-web-uas'),          wo.unique_uas);
+
+  if (web.timeseries && web.timeseries.length) {
+    const labels = web.timeseries.map(r => fmtTime(r.t, currentWindow));
+    activeCharts['web-ts'] = new Chart($('chart-web-timeseries'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: t('legend.visits'),
+            data: web.timeseries.map(r => r.visits),
+            borderColor: GBX.blue, backgroundColor: GBX.blue + '33',
+            fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
+          },
+          {
+            label: t('legend.submissions'),
+            data: web.timeseries.map(r => r.submissions),
+            borderColor: GBX.red, backgroundColor: GBX.red + '33',
+            fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: fgColor(), maxTicksLimit: 8 }, grid: { color: gridColor() } },
+          y: { ticks: { color: fgColor(), stepSize: 1 },      grid: { color: gridColor() }, beginAtZero: true },
+        },
+      },
+    });
+  }
+
+  if (web.top_paths && web.top_paths.length) {
+    activeCharts['web-paths'] = hbarChart('chart-web-paths',
+      web.top_paths.map(r => r.path),
+      web.top_paths.map(r => Number(r.visits)),
+      GBX.blue + 'cc');
+  }
+
+  if (web.top_ips && web.top_ips.length) {
+    activeCharts['web-ips'] = hbarChart('chart-web-ips',
+      web.top_ips.map(r => r.ip),
+      web.top_ips.map(r => Number(r.visits)),
+      GBX.orange + 'cc');
+  }
+
+  const webHasCreds = (web.top_usernames && web.top_usernames.length) ||
+                      (web.top_passwords && web.top_passwords.length);
+  $('section-web-creds').hidden = !webHasCreds;
+
+  if (web.top_usernames && web.top_usernames.length) {
+    activeCharts['web-users'] = hbarChart('chart-web-usernames',
+      web.top_usernames.map(r => r.username),
+      web.top_usernames.map(r => Number(r.attempts)),
+      GBX.aqua + 'cc');
+  }
+
+  if (web.top_passwords && web.top_passwords.length) {
+    activeCharts['web-pw'] = hbarChart('chart-web-passwords',
+      web.top_passwords.map(r => r.password),
+      web.top_passwords.map(r => Number(r.attempts)),
+      GBX.purple + 'cc');
+  }
+
+  fillTable('tbl-web-uas', web.top_uas || [], r =>
+    `<td class="rank">${r._rank}</td>
+     <td class="mono truncate">${esc(r.user_agent)}</td>
+     <td class="num mono">${r.visits}</td>`
+  );
+
+  fillTable('tbl-web-visits', web.visit_log || [], r =>
+    `<td class="mono">${fmtTs(r.time)}</td>
+     <td class="mono">${esc(r.ip)}</td>
+     <td class="mono">${esc(r.method)}</td>
+     <td class="mono truncate">${esc(r.path)}</td>
+     <td class="mono truncate">${esc(r.user_agent)}</td>`
+  );
+
+  fillTable('tbl-web-submissions', web.submission_log || [], r => {
+    const fd = r.form_data || {};
+    return `<td class="mono">${fmtTs(r.time)}</td>
+     <td class="mono">${esc(r.ip)}</td>
+     <td class="mono">${esc(fd.username || '—')}</td>
+     <td class="mono">${esc(fd.password || '—')}</td>`;
+  });
 }
 
 // ── Wordlists ─────────────────────────────────────────────────────────────
