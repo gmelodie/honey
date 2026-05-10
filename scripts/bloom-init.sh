@@ -8,8 +8,6 @@ if [ -f "$BLOOM_FILE" ]; then
     exit 0
 fi
 
-pip install pybloom-live -q
-
 # Download each URL in BLOOM_WORDLIST_URLS to a temp dir, then build the filter.
 # Downloaded files are cleaned up automatically via trap — never persisted to disk.
 TMPDIR=$(mktemp -d)
