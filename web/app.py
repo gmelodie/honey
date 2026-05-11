@@ -3,7 +3,7 @@ import hashlib
 import io
 import os
 import requests
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, redirect, url_for
 from datetime import datetime, timedelta, timezone
 
 app = Flask(__name__)
@@ -179,6 +179,13 @@ def wordlist_meta():
         "hashcat_rules":      info("hashcat_rules"),
         "john_rules":         info("john_rules"),
     })
+
+
+@app.errorhandler(404)
+def not_found(e):
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "not found"}), 404
+    return redirect(url_for("index"))
 
 
 @app.route("/api/wordlist/<wtype>/download")
