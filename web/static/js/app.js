@@ -637,38 +637,45 @@ function renderAll(d) {
   }
 
   {
-    const counts = new Array(24).fill(0);
-    d.by_hour.forEach(r => { counts[r.h] = Number(r.attempts); });
-    const labels = counts.map((_, i) => `${String(i).padStart(2,'0')}:00`);
-    activeCharts['hour'] = barChart('chart-hour', labels, counts, GBX.blue + 'cc');
+    const hourCounts = new Array(24).fill(0);
+    d.by_hour.forEach(r => { hourCounts[r.h] = Number(r.attempts); });
+    const hourTotal = hourCounts.reduce((a, b) => a + b, 0);
+    activeCharts['hour'] = areaChart(
+      'chart-hour',
+      hourCounts.map((_, h) => String(h).padStart(2, '0') + ':00'),
+      hourCounts,
+      '--c-blue',
+      h => openTimePanel('hour', h, hourCounts[h], hourTotal, d),
+    );
   }
 
   {
-    const dow = t('dow');
-    const counts = new Array(7).fill(0);
-    d.by_dow.forEach(r => { counts[r.dow] = Number(r.attempts); });
-    activeCharts['dow'] = barChart('chart-dow', dow, counts, GBX.orange + 'cc');
+    const dowLabels = t('dow');
+    const dowCounts = new Array(7).fill(0);
+    d.by_dow.forEach(r => { dowCounts[r.dow] = Number(r.attempts); });
+    const dowTotal = dowCounts.reduce((a, b) => a + b, 0);
+    activeCharts['dow'] = areaChart(
+      'chart-dow',
+      dowLabels,
+      dowCounts,
+      '--c-orange',
+      i => openTimePanel('dow', i, dowCounts[i], dowTotal, d),
+    );
   }
 
-  if (d.top_usernames.length) {
-    activeCharts['users'] = hbarChart('chart-usernames',
-      d.top_usernames.map(r => r.username),
-      d.top_usernames.map(r => Number(r.attempts)),
-      GBX.aqua + 'cc');
-  }
+  renderHBar('chart-usernames', d.top_usernames.map(r => ({
+    label: r.username, value: Number(r.attempts),
+  })), 'var(--c-aqua)');
 
-  if (d.top_passwords.length) {
-    activeCharts['pw'] = hbarChart('chart-passwords',
-      d.top_passwords.map(r => r.password),
-      d.top_passwords.map(r => Number(r.attempts)),
-      GBX.purple + 'cc');
-  }
+  renderHBar('chart-passwords', d.top_passwords.map(r => ({
+    label: r.password, value: Number(r.attempts),
+  })), 'var(--c-purple)');
 
   if (d.top_urls.length) {
-    activeCharts['urls'] = hbarChart('chart-urls',
-      d.top_urls.map(r => r.url.replace(/^https?:\/\//, '').substring(0, 40)),
-      d.top_urls.map(r => Number(r.downloads)),
-      GBX.yellow + 'cc');
+    renderHBar('chart-urls', d.top_urls.map(r => ({
+      label: r.url.replace(/^https?:\/\//, '').substring(0, 50),
+      value: Number(r.downloads),
+    })), 'var(--c-yellow)');
   }
 
   fillTable('tbl-pairs', d.top_pairs, r =>
@@ -761,37 +768,25 @@ function renderAll(d) {
     });
   }
 
-  if (web.top_paths && web.top_paths.length) {
-    activeCharts['web-paths'] = hbarChart('chart-web-paths',
-      web.top_paths.map(r => r.path),
-      web.top_paths.map(r => Number(r.visits)),
-      GBX.blue + 'cc');
-  }
+  renderHBar('chart-web-paths', (web.top_paths || []).map(r => ({
+    label: r.path, value: Number(r.visits),
+  })), 'var(--c-blue)');
 
-  if (web.top_ips && web.top_ips.length) {
-    activeCharts['web-ips'] = hbarChart('chart-web-ips',
-      web.top_ips.map(r => r.ip),
-      web.top_ips.map(r => Number(r.visits)),
-      GBX.orange + 'cc');
-  }
+  renderHBar('chart-web-ips', (web.top_ips || []).map(r => ({
+    label: r.ip, value: Number(r.visits),
+  })), 'var(--c-orange)');
 
   const webHasCreds = (web.top_usernames && web.top_usernames.length) ||
                       (web.top_passwords && web.top_passwords.length);
   $('section-web-creds').hidden = !webHasCreds;
 
-  if (web.top_usernames && web.top_usernames.length) {
-    activeCharts['web-users'] = hbarChart('chart-web-usernames',
-      web.top_usernames.map(r => r.username),
-      web.top_usernames.map(r => Number(r.attempts)),
-      GBX.aqua + 'cc');
-  }
+  renderHBar('chart-web-usernames', (web.top_usernames || []).map(r => ({
+    label: r.username, value: Number(r.attempts),
+  })), 'var(--c-aqua)');
 
-  if (web.top_passwords && web.top_passwords.length) {
-    activeCharts['web-pw'] = hbarChart('chart-web-passwords',
-      web.top_passwords.map(r => r.password),
-      web.top_passwords.map(r => Number(r.attempts)),
-      GBX.purple + 'cc');
-  }
+  renderHBar('chart-web-passwords', (web.top_passwords || []).map(r => ({
+    label: r.password, value: Number(r.attempts),
+  })), 'var(--c-purple)');
 
   fillTable('tbl-web-uas', web.top_uas || [], r =>
     `<td class="rank">${r._rank}</td>
@@ -827,12 +822,11 @@ function renderAll(d) {
     });
   }
 
-  if (geo.top_asns && geo.top_asns.length) {
-    activeCharts['geo-asns'] = hbarChart('chart-asns',
-      geo.top_asns.map(r => r.asn_org ? `AS${r.asn} ${r.asn_org}` : `AS${r.asn}`),
-      geo.top_asns.map(r => r.sessions),
-      GBX.orange + 'cc');
-  }
+  renderHBar('chart-asns', (geo.top_asns || []).map(r => ({
+    label: r.asn_org || `AS${r.asn}`,
+    value: r.sessions,
+    href:  `https://bgp.he.net/AS${r.asn}`,
+  })), 'var(--c-orange)');
 
   const newAsns = geo.new_asns || [];
   $('section-new-asns').hidden = !newAsns.length;
@@ -1042,6 +1036,8 @@ function countryFlag(iso2) {
 }
 
 function openCountryPanel(name, iso2, sessions, rank, totalSessions, asns) {
+  $('time-panel').classList.remove('open');
+  document.querySelectorAll('.vbar-col.active').forEach(c => c.classList.remove('active'));
   const panel = $('country-panel');
   $('cp-flag').textContent = iso2 ? countryFlag(iso2) : '🌍';
   $('cp-name').textContent = name;
@@ -1194,37 +1190,149 @@ async function choroplethChart(canvasId, countryData, countryAsns) {
   });
 }
 
-// ── Chart helpers ─────────────────────────────────────────────────────────
-function barChart(canvasId, labels, data, color) {
+// ── Area chart (filled line — same style as timeseries) ──────────────────
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function areaChart(canvasId, labels, data, cssVar, onClickCb) {
+  const color = getCSSVar(cssVar);
   return new Chart($(canvasId), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4, borderWidth: 0 }] },
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: color + '28',
+        borderColor: color,
+        borderWidth: 2,
+        borderRadius: 0,
+        borderSkipped: 'bottom',
+      }],
+    },
     options: {
       responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
+      onClick: onClickCb ? (evt, elements) => {
+        if (elements.length) onClickCb(elements[0].index);
+      } : undefined,
+      onHover: onClickCb ? (evt, elements) => {
+        if (evt.native?.target) evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      } : undefined,
       scales: {
         x: { ticks: { color: fgColor(), maxRotation: 0 }, grid: { color: gridColor() } },
-        y: { ticks: { color: fgColor(), stepSize: 1 }, grid: { color: gridColor() }, beginAtZero: true },
+        y: { ticks: { color: fgColor() }, grid: { color: gridColor() }, beginAtZero: true },
       },
     },
   });
 }
 
-function hbarChart(canvasId, labels, data, color) {
-  return new Chart($(canvasId), {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4, borderWidth: 0 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      indexAxis: 'y',
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: fgColor(), stepSize: 1 }, grid: { color: gridColor() }, beginAtZero: true },
-        y: { ticks: { color: fgColor() }, grid: { display: false } },
-      },
-    },
+// ── HTML bar charts ───────────────────────────────────────────────────────
+function renderHBar(id, rows, color) {
+  const el = $(id);
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = `<div class="bar-empty">${t('tbl.nodata')}</div>`;
+    return;
+  }
+  const max = Math.max(...rows.map(r => r.value), 1);
+  el.className = 'hbar-chart';
+  el.innerHTML = rows.map((r, i) => {
+    const pct = (r.value / max * 100).toFixed(2);
+    const labelHtml = r.href
+      ? `<a class="hbar-label hbar-link" href="${esc(r.href)}" target="_blank" rel="noopener">${esc(r.label)}</a>`
+      : `<span class="hbar-label">${esc(r.label)}</span>`;
+    return `<div class="hbar-row${r.onClick ? ' hbar-clickable' : ''}" data-i="${i}" data-pct="${pct}" style="--hbar-clr:${color}">
+      <div class="hbar-label-col">${labelHtml}</div>
+      <div class="hbar-track"><div class="hbar-fill"></div></div>
+      <div class="hbar-val">${Number(r.value).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(() =>
+    el.querySelectorAll('.hbar-row').forEach(row =>
+      row.querySelector('.hbar-fill').style.width = row.dataset.pct + '%'
+    )
+  );
+  rows.forEach((r, i) => {
+    if (!r.onClick) return;
+    el.querySelector(`.hbar-row[data-i="${i}"]`)?.addEventListener('click', r.onClick);
   });
 }
+
+function renderVBar(id, rows, color) {
+  const el = $(id);
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = `<div class="bar-empty">${t('tbl.nodata')}</div>`;
+    return;
+  }
+  const max = Math.max(...rows.map(r => r.value), 1);
+  el.className = 'vbar-chart';
+  el.innerHTML = rows.map((r, i) =>
+    `<div class="vbar-col${r.onClick ? ' vbar-clickable' : ''}" data-i="${i}" data-pct="${(r.value / max * 100).toFixed(2)}" style="--vbar-clr:${color}" title="${Number(r.value).toLocaleString()} attempts">
+      <div class="vbar-track"><div class="vbar-fill"></div></div>
+      <div class="vbar-label">${esc(r.label)}</div>
+    </div>`
+  ).join('');
+  requestAnimationFrame(() =>
+    el.querySelectorAll('.vbar-col').forEach(col =>
+      col.querySelector('.vbar-fill').style.height = col.dataset.pct + '%'
+    )
+  );
+  rows.forEach((r, i) => {
+    if (!r.onClick) return;
+    const col = el.querySelector(`.vbar-col[data-i="${i}"]`);
+    if (!col) return;
+    col.addEventListener('click', () => {
+      el.querySelectorAll('.vbar-col').forEach(c => c.classList.remove('active'));
+      col.classList.add('active');
+      r.onClick();
+    });
+  });
+}
+
+// ── Time detail panel ─────────────────────────────────────────────────────
+function openTimePanel(type, idx, count, total, data) {
+  $('country-panel').classList.remove('open');
+  const dowLabels = t('dow');
+  $('tp-label').textContent = type === 'hour'
+    ? `${String(idx).padStart(2, '0')}:00 – ${String(idx).padStart(2, '0')}:59 UTC`
+    : dowLabels[idx];
+  $('tp-count').textContent = count.toLocaleString();
+  $('tp-pct').textContent   = total ? (count / total * 100).toFixed(1) + '%' : '—';
+
+  const match = type === 'hour'
+    ? r => new Date(r.time).getUTCHours() === idx
+    : r => new Date(r.time).getUTCDay()   === idx;
+
+  const authRows = (data.auth_log || []).filter(match).slice(0, 15);
+  $('tp-auth').innerHTML = authRows.length
+    ? authRows.map(r =>
+        `<div class="tp-row">
+          <span class="tp-ip">${esc(r.ip)}</span>
+          <span class="tp-cred">${esc(r.username)}/<wbr>${esc(r.password)}</span>
+          <span class="${r.success ? 'badge-ok' : 'badge-fail'}">${r.success ? '✓' : '✗'}</span>
+        </div>`).join('')
+    : `<div class="tp-empty">no log entries in this ${type === 'hour' ? 'hour' : 'day'}</div>`;
+
+  const cmdRows = (data.cmd_log || []).filter(match).slice(0, 10);
+  const cmdSection = $('tp-cmd-section');
+  cmdSection.hidden = !cmdRows.length;
+  if (cmdRows.length) {
+    $('tp-cmd').innerHTML = cmdRows.map(r =>
+      `<div class="tp-row">
+        <span class="tp-ip">${esc(r.ip)}</span>
+        <span class="tp-cred">${esc(r.input)}</span>
+      </div>`).join('');
+  }
+  $('time-panel').classList.add('open');
+}
+
+$('tp-close').addEventListener('click', () => {
+  $('time-panel').classList.remove('open');
+  document.querySelectorAll('.vbar-col.active').forEach(c => c.classList.remove('active'));
+});
 
 // ── Table filler ──────────────────────────────────────────────────────────
 function fillTable(id, rows, rowHtml) {

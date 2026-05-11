@@ -191,7 +191,7 @@
             <div class="charts-row">
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.asns">Top ASNs</h3>
-                <div class="chart-body" style="height:260px"><canvas id="chart-asns"></canvas></div>
+                <div class="chart-body"><div id="chart-asns"></div></div>
               </div>
               <div class="tbl-wrap" id="section-new-asns">
                 <h3 class="chart-title" data-i18n="section.new_asns" style="padding:10px 14px 6px">New ASNs This Window</h3>
@@ -343,11 +343,11 @@
             <div class="charts-row">
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.usernames">Usernames</h3>
-                <div class="chart-body" style="height:260px"><canvas id="chart-usernames"></canvas></div>
+                <div class="chart-body"><div id="chart-usernames"></div></div>
               </div>
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.passwords">Passwords</h3>
-                <div class="chart-body" style="height:260px"><canvas id="chart-passwords"></canvas></div>
+                <div class="chart-body"><div id="chart-passwords"></div></div>
               </div>
             </div>
           </section>
@@ -388,7 +388,7 @@
             <h2 class="section-heading" data-i18n="section.downloads">Downloads</h2>
             <div class="chart-card">
               <h3 class="chart-title" data-i18n="chart.top_urls">Top Download URLs</h3>
-              <div class="chart-body" style="height:220px"><canvas id="chart-urls"></canvas></div>
+              <div class="chart-body"><div id="chart-urls"></div></div>
             </div>
           </section>
 
@@ -571,11 +571,11 @@
             <div class="charts-row">
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.web_paths">Top Requested Paths</h3>
-                <div class="chart-body" style="height:240px"><canvas id="chart-web-paths"></canvas></div>
+                <div class="chart-body"><div id="chart-web-paths"></div></div>
               </div>
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.web_ips">Top Source IPs</h3>
-                <div class="chart-body" style="height:240px"><canvas id="chart-web-ips"></canvas></div>
+                <div class="chart-body"><div id="chart-web-ips"></div></div>
               </div>
             </div>
           </section>
@@ -586,11 +586,11 @@
             <div class="charts-row">
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.web_usernames">Usernames</h3>
-                <div class="chart-body" style="height:240px"><canvas id="chart-web-usernames"></canvas></div>
+                <div class="chart-body"><div id="chart-web-usernames"></div></div>
               </div>
               <div class="chart-card">
                 <h3 class="chart-title" data-i18n="chart.web_passwords">Passwords</h3>
-                <div class="chart-body" style="height:240px"><canvas id="chart-web-passwords"></canvas></div>
+                <div class="chart-body"><div id="chart-web-passwords"></div></div>
               </div>
             </div>
           </section>
@@ -932,17 +932,47 @@
     honey &nbsp;//&nbsp; protected by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">reCAPTCHA</a> &nbsp;·&nbsp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">privacy</a> &amp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">terms</a>
   </footer>
 
+<!-- ═══ TIME DETAIL PANEL ═════════════════════════════════════════════════ -->
+<div id="time-panel" class="side-panel">
+  <div class="side-panel-bar">
+    <span class="side-panel-heading">// <span id="tp-label"></span></span>
+    <button id="tp-close" class="icon-btn" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="side-panel-body">
+    <div class="cp-stats" style="margin-bottom:18px">
+      <div class="cp-stat">
+        <span class="cp-stat-label">attacks</span>
+        <span id="tp-count" class="cp-stat-val">—</span>
+      </div>
+      <div class="cp-stat">
+        <span class="cp-stat-label">% of window</span>
+        <span id="tp-pct" class="cp-stat-val">—</span>
+      </div>
+    </div>
+    <p class="tp-section-label">auth log</p>
+    <div id="tp-auth" class="tp-log"></div>
+    <div id="tp-cmd-section" hidden>
+      <p class="tp-section-label" style="margin-top:14px">commands</p>
+      <div id="tp-cmd" class="tp-log"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ COUNTRY PANEL ══════════════════════════════════════════════════════ -->
-<div id="country-panel" class="country-panel">
-  <div class="country-panel-bar">
-    <span class="country-panel-label">// country detail</span>
+<div id="country-panel" class="side-panel">
+  <div class="side-panel-bar">
+    <span class="side-panel-heading">// country detail</span>
     <button id="cp-close" class="icon-btn" title="Close">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>
   </div>
-  <div class="country-panel-body">
+  <div class="side-panel-body">
     <div class="cp-hero">
       <span id="cp-flag" class="cp-flag"></span>
       <span id="cp-name" class="cp-name"></span>

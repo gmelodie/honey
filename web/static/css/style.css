@@ -165,11 +165,11 @@ body { min-height: 100vh; overflow-x: hidden; }
 }
 
 /* ── App shell ───────────────────────────────────────────────────────── */
-.app { min-height: 100vh; display: flex; flex-direction: column; }
+.app { min-height: 100vh; display: flex; flex-direction: column; padding-top: 50px; }
 
 /* ── Topbar ──────────────────────────────────────────────────────────── */
 .topbar {
-  position: sticky; top: 0; z-index: 50;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 20px; height: 50px;
   background: var(--topbar-bg);
@@ -480,11 +480,11 @@ body { min-height: 100vh; overflow-x: hidden; }
   text-align: center; padding: 30px 0;
 }
 
-/* ── Country detail panel ────────────────────────────────────────────── */
-.country-panel {
+/* ── Side panels (country detail, time detail) ───────────────────────── */
+.side-panel {
   position: fixed;
   top: 50px; right: 0;
-  width: 256px;
+  width: 300px;
   height: calc(100vh - 50px);
   background: var(--bg-card);
   border-left: 1px solid var(--border-hi);
@@ -495,22 +495,22 @@ body { min-height: 100vh; overflow-x: hidden; }
   display: flex; flex-direction: column;
   overflow: hidden;
 }
-.country-panel.open { transform: translateX(0); }
+.side-panel.open { transform: translateX(0); }
 
-.country-panel-bar {
+.side-panel-bar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 14px;
   background: var(--bg-alt);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.country-panel-label {
+.side-panel-heading {
   font-family: 'JetBrains Mono', monospace;
   font-size: .62rem; font-weight: 700;
   color: var(--c-green); letter-spacing: .1em;
 }
 
-.country-panel-body { padding: 20px 16px; overflow-y: auto; }
+.side-panel-body { padding: 18px 16px; overflow-y: auto; flex: 1; }
 
 .cp-hero {
   display: flex; align-items: center; gap: 10px;
@@ -583,6 +583,123 @@ body { min-height: 100vh; overflow-x: hidden; }
   font-family: 'JetBrains Mono', monospace;
   font-size: .7rem; color: var(--fg-dim);
   line-height: 1.6; margin-top: 4px;
+}
+
+/* ── HTML horizontal bar charts ──────────────────────────────────────── */
+.hbar-chart { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
+.hbar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 60px;
+  align-items: center; gap: 8px;
+  padding: 3px 4px;
+  border-radius: 2px;
+  transition: background .1s;
+}
+.hbar-clickable { cursor: pointer; }
+.hbar-clickable:hover { background: var(--tbl-hover); }
+.hbar-label-col { overflow: hidden; min-width: 0; }
+.hbar-label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .68rem; color: var(--fg-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hbar-link { color: var(--c-blue); text-decoration: none; }
+.hbar-link:hover { text-decoration: underline; color: var(--c-blue); }
+.hbar-track {
+  height: 14px;
+  background: var(--bg-alt);
+  border-radius: 2px; overflow: hidden;
+}
+.hbar-fill {
+  position: relative;
+  height: 100%; width: 0;
+  background: transparent;
+  transition: width .55s cubic-bezier(.4,0,.2,1);
+  overflow: visible;
+}
+.hbar-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--hbar-clr, var(--c-blue));
+  opacity: .18;
+  transition: opacity .15s;
+}
+.hbar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 2px;
+  background: var(--hbar-clr, var(--c-blue));
+}
+.hbar-clickable:hover .hbar-fill::before { opacity: .28; }
+.hbar-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem; color: var(--fg-dim);
+  text-align: right; white-space: nowrap;
+}
+
+/* ── HTML vertical bar charts ────────────────────────────────────────── */
+.vbar-chart {
+  display: flex; align-items: flex-end; gap: 2px;
+  height: 100%; padding-bottom: 20px;
+}
+.vbar-col {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; height: 100%;
+  border-radius: 2px;
+  transition: background .1s;
+}
+.vbar-clickable { cursor: pointer; }
+.vbar-clickable:hover { background: var(--tbl-hover); }
+.vbar-track {
+  flex: 1; width: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.vbar-fill {
+  width: 100%; height: 0;
+  background: var(--vbar-clr, var(--c-blue));
+  border-radius: 2px 2px 0 0;
+  opacity: .75;
+  transition: height .55s cubic-bezier(.4,0,.2,1), opacity .15s, filter .15s;
+}
+.vbar-clickable:hover .vbar-fill,
+.vbar-col.active .vbar-fill { opacity: 1; filter: brightness(1.12); }
+.vbar-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .52rem; color: var(--fg-dim);
+  height: 20px; display: flex; align-items: flex-end;
+  padding-bottom: 2px; white-space: nowrap;
+  transition: color .1s;
+}
+.vbar-clickable:hover .vbar-label,
+.vbar-col.active .vbar-label { color: var(--fg-muted); }
+
+.bar-empty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .72rem; color: var(--fg-dim);
+  text-align: center; padding: 28px 0;
+}
+
+/* ── Time panel log entries ───────────────────────────────────────────── */
+.tp-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .58rem; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--fg-dim); margin-bottom: 6px;
+}
+.tp-log { display: flex; flex-direction: column; gap: 1px; }
+.tp-row {
+  display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline;
+  padding: 5px 8px;
+  background: var(--bg-alt);
+  font-family: 'JetBrains Mono', monospace; font-size: .63rem;
+}
+.tp-ip   { color: var(--c-blue); white-space: nowrap; flex-shrink: 0; }
+.tp-cred { color: var(--fg-muted); word-break: break-all; flex: 1; }
+.tp-empty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .68rem; color: var(--fg-dim); padding: 10px 0;
 }
 
 /* ── Choropleth legend ───────────────────────────────────────────────── */
