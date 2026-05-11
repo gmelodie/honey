@@ -81,14 +81,18 @@ WL_FILES = {
     "novel_passwords":    "novel_passwords.txt",
     "trending_passwords": "trending_passwords.txt",
     "dying_passwords":    "dying_passwords.txt",
+    "hashcat_rules":      "hashcat.rule",
+    "john_rules":         "john.rule",
 }
+
+RULE_TYPES = {"hashcat_rules", "john_rules"}
 
 
 def _wl_path(period, wtype):
     return os.path.join(WORDLIST_DIR, WL_PERIODS[period], WL_FILES[wtype])
 
 
-def _wl_meta(path):
+def _wl_meta(path, skip_comments=False):
     """Return (line_count, file_size, mtime) for a wordlist file, or None if missing."""
     try:
         st = os.stat(path)
@@ -97,6 +101,21 @@ def _wl_meta(path):
         return count, st.st_size, st.st_mtime
     except FileNotFoundError:
         return None
+
+
+def _rule_preview(path, n=5):
+    lines = []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.rstrip("\n")
+                if line and not line.startswith("#") and not line.startswith("["):
+                    lines.append(line)
+                    if len(lines) >= n:
+                        break
+    except FileNotFoundError:
+        pass
+    return lines
 
 
 WL_OFFSETS = {
@@ -125,20 +144,25 @@ def wordlist_meta():
             return {"ready": False, "oldest": None, "newest": None}
         count, size, mtime = meta
         sha = hashlib.sha256(f"{count}:{mtime}".encode()).hexdigest()
-        preview_lines = []
-        try:
-            with open(path, encoding="utf-8", errors="replace") as f:
-                for i, line in enumerate(f):
-                    if i >= 5:
-                        break
-                    preview_lines.append(line.rstrip("\n"))
-        except FileNotFoundError:
-            pass
+        is_rule = wtype in RULE_TYPES
+        if is_rule:
+            preview_lines = _rule_preview(path)
+        else:
+            preview_lines = []
+            try:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    for i, line in enumerate(f):
+                        if i >= 5:
+                            break
+                        preview_lines.append(line.rstrip("\n"))
+            except FileNotFoundError:
+                pass
         return {
             "ready":   True,
             "total":   count,
-            "oldest":  oldest_iso,
-            "newest":  newest_iso,
+            "oldest":  oldest_iso if not is_rule else None,
+            "newest":  newest_iso if not is_rule else None,
+            "size":    _fmt_bytes(size),
             "gz_size": _fmt_bytes(int(size * 0.35)),
             "sha256":  sha,
             "preview": preview_lines,
@@ -152,6 +176,8 @@ def wordlist_meta():
         "novel_passwords":    info("novel_passwords"),
         "trending_passwords": info("trending_passwords"),
         "dying_passwords":    info("dying_passwords"),
+        "hashcat_rules":      info("hashcat_rules"),
+        "john_rules":         info("john_rules"),
     })
 
 
@@ -166,6 +192,16 @@ def wordlist_download(wtype):
     path = _wl_path(period, wtype)
     if not os.path.exists(path):
         return jsonify({"error": "wordlist not yet generated"}), 503
+
+    if wtype in RULE_TYPES:
+        ext = "hashcat.rule" if wtype == "hashcat_rules" else "john.rule"
+        with open(path, "rb") as f:
+            data = f.read()
+        return Response(
+            data,
+            mimetype="text/plain",
+            headers={"Content-Disposition": f"attachment; filename=autopot_{period}_{ext}"},
+        )
 
     buf = io.BytesIO()
     with open(path, "rb") as f:
