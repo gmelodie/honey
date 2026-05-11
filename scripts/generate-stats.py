@@ -254,9 +254,14 @@ def _lookup_ip(ip, country_reader, asn_reader):
         try:
             r = country_reader.get(ip)
             if r:
-                c = r.get("country") or {}
-                country_iso  = c.get("iso_code")
-                country_name = (c.get("names") or {}).get("en")
+                c = r.get("country")
+                if isinstance(c, dict):
+                    # MaxMind GeoLite2 format: {"country": {"iso_code": "US", "names": {...}}}
+                    country_iso  = c.get("iso_code")
+                    country_name = (c.get("names") or {}).get("en")
+                elif isinstance(c, str) and c:
+                    # db-ip.com flat format: {"country": "US"}
+                    country_iso = c
         except Exception as e:
             print(f"  WARNING: country lookup failed for {ip}: {e}", file=sys.stderr)
     if asn_reader:
@@ -275,10 +280,15 @@ def enrich_new_ips(conn, country_reader, asn_reader):
         print("  GeoIP readers unavailable, skipping enrichment", file=sys.stderr)
         return
     with conn.cursor() as cur:
+        # Pick up IPs not yet cached AND IPs previously cached with no country data
+        # (e.g. from a prior run where the db-ip format was misread)
         cur.execute("""
             SELECT DISTINCT s.ip FROM sessions s
             WHERE s.ip IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM ip_geo_cache c WHERE c.ip = s.ip)
+              AND NOT EXISTS (
+                SELECT 1 FROM ip_geo_cache c
+                WHERE c.ip = s.ip AND c.country_iso IS NOT NULL
+              )
             LIMIT 5000
         """)
         ips = [r[0] for r in cur.fetchall()]
@@ -292,7 +302,13 @@ def enrich_new_ips(conn, country_reader, asn_reader):
         psycopg2.extras.execute_values(cur, """
             INSERT INTO ip_geo_cache (ip, country_iso, country_name, asn, asn_org)
             VALUES %s
-            ON CONFLICT (ip) DO NOTHING
+            ON CONFLICT (ip) DO UPDATE SET
+                country_iso  = EXCLUDED.country_iso,
+                country_name = EXCLUDED.country_name,
+                asn          = COALESCE(EXCLUDED.asn,     ip_geo_cache.asn),
+                asn_org      = COALESCE(EXCLUDED.asn_org, ip_geo_cache.asn_org),
+                looked_up_at = NOW()
+            WHERE ip_geo_cache.country_iso IS NULL
         """, batch)
     print(f"  Geo-enriched {len(batch)} new IPs")
 

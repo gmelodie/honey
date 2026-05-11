@@ -1034,8 +1034,8 @@ async function choroplethChart(canvasId, countryData) {
         },
       },
       scales: {
-        projection: { axis: 'x', projection: 'equalEarth' },
-        color: { display: false },
+        projection: { type: 'projection', axis: 'x', projection: 'equalEarth', position: 'chartArea', display: false },
+        color:      { type: 'color',      axis: 'x', display: false },
       },
     },
   });
