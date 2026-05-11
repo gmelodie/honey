@@ -83,6 +83,8 @@ const STRINGS = {
     'th.first_seen':   'First Seen',
     'th.downloads':    'Downloads',
 
+    'card.ov_auth.meta': 'ssh + http login attempts',
+
     'chart.by_hour':   'Attacks by Hour of Day',
     'chart.by_dow':    'Attacks by Day of Week',
     'chart.usernames': 'Usernames',
@@ -232,6 +234,8 @@ const STRINGS = {
 
     'th.first_seen':   'Primeira Vez',
     'th.downloads':    'Downloads',
+
+    'card.ov_auth.meta': 'tentativas ssh + http',
 
     'chart.by_hour':   'Ataques por Hora do Dia',
     'chart.by_dow':    'Ataques por Dia da Semana',
@@ -436,6 +440,8 @@ window.onRecaptchaLoad = () => {
   if (!window.__RC_SITE_KEY__) { openDashboard(); return; }
   grecaptcha.ready(() => { $('enter-btn').disabled = false; });
 };
+// reCAPTCHA (async) may have fired before app.js finished loading — replay now
+if (window.__rcFired) window.onRecaptchaLoad();
 
 $('enter-btn').addEventListener('click', async () => {
   $('enter-btn').disabled = true;
@@ -488,12 +494,13 @@ document.querySelectorAll('.page-tab').forEach(btn => {
     document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const page = btn.dataset.page;
+    $('page-overview').hidden  = page !== 'overview';
     $('page-ssh').hidden       = page !== 'ssh';
     $('page-http').hidden      = page !== 'http';
     $('page-wordlists').hidden = page !== 'wordlists';
     $('dashboard-controls').style.display = page === 'wordlists' ? 'none' : 'flex';
     if (page === 'wordlists' && !wordlistsLoaded) loadWordlists();
-    if (page === 'http') requestAnimationFrame(() => Object.values(activeCharts).forEach(c => c.resize()));
+    if (page === 'http' || page === 'overview') requestAnimationFrame(() => Object.values(activeCharts).forEach(c => c.resize()));
   });
 });
 
@@ -525,12 +532,15 @@ document.querySelectorAll('.log-tab[data-tab]').forEach(btn => {
 
 // ── Stats fetch ───────────────────────────────────────────────────────────
 async function loadStats() {
-  $('loading').hidden    = false;
-  $('stats-root').hidden = true;
-  $('http-loading').hidden = false;
-  $('http-root').hidden    = true;
-  $('loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
-  $('http-loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
+  $('loading').hidden          = false;
+  $('stats-root').hidden       = true;
+  $('http-loading').hidden     = false;
+  $('http-root').hidden        = true;
+  $('overview-loading').hidden = false;
+  $('overview-root').hidden    = true;
+  $('loading').innerHTML          = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
+  $('http-loading').innerHTML     = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
+  $('overview-loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
 
   for (;;) {
     try {
@@ -545,16 +555,19 @@ async function loadStats() {
       lastData = data;
       destroyCharts();
       renderAll(data);
-      $('loading').hidden      = true;
-      $('stats-root').hidden   = false;
-      $('http-loading').hidden = true;
-      $('http-root').hidden    = false;
+      $('loading').hidden          = true;
+      $('stats-root').hidden       = false;
+      $('http-loading').hidden     = true;
+      $('http-root').hidden        = false;
+      $('overview-loading').hidden = true;
+      $('overview-root').hidden    = false;
       $('last-updated').textContent = new Date().toLocaleTimeString();
       return;
     } catch (err) {
       const msg = `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center">ERR: ${esc(err.message)}</p>`;
-      $('loading').innerHTML     = msg;
-      $('http-loading').innerHTML = msg;
+      $('loading').innerHTML          = msg;
+      $('http-loading').innerHTML     = msg;
+      $('overview-loading').innerHTML = msg;
       return;
     }
   }
@@ -568,6 +581,14 @@ function destroyCharts() {
 // ── Dashboard render ──────────────────────────────────────────────────────
 function renderAll(d) {
   const { overview } = d;
+
+  // ── Overview combined stats (SSH + HTTP) ────────────────────────────────
+  const wo = (d.web || {}).overview || {};
+  counter($('v-ov-unique-passwords'), (overview.unique_passwords || 0) + (wo.unique_passwords || 0));
+  counter($('v-ov-unique-usernames'), (overview.unique_usernames || 0) + (wo.unique_usernames || 0));
+  counter($('v-ov-unique-ips'),       (overview.unique_ips       || 0) + (wo.unique_ips       || 0));
+  counter($('v-ov-auth'),             (overview.auth_attempts    || 0) + (wo.submissions       || 0));
+  counter($('v-ov-downloads'),         overview.downloads        || 0);
 
   counter($('v-auth'),             overview.auth_attempts);
   counter($('v-commands'),         overview.commands);
@@ -697,7 +718,6 @@ function renderAll(d) {
 
   // ── Web honeypot ──────────────────────────────────────────────────────────
   const web = d.web || {};
-  const wo  = web.overview || {};
 
   if (wo.visits            != null) counter($('v-web-visits'),            wo.visits);
   if (wo.unique_ips        != null) counter($('v-web-ips'),               wo.unique_ips);

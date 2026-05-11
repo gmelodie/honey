@@ -395,11 +395,14 @@ body { min-height: 100vh; overflow-x: hidden; }
 }
 
 .wl-card {
+  --wl-clr: var(--c-green);
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  transition: border-color .15s;
+  border: 1px solid var(--wl-clr);
+  transition: border-color .15s, box-shadow .15s;
 }
-.wl-card:hover { border-color: var(--border-hi); }
+.wl-card:hover { box-shadow: 0 0 0 1px var(--wl-clr); }
+.wl-card--analysis { --wl-clr: var(--c-blue); }
+.wl-card--rules    { --wl-clr: var(--c-purple); }
 .wl-card--analysis .wl-card-title { color: var(--c-blue); }
 .wl-card--rules    .wl-card-title { color: var(--c-purple); }
 
@@ -435,8 +438,8 @@ body { min-height: 100vh; overflow-x: hidden; }
   display: flex; align-items: center; gap: 6px;
   padding: 8px 12px; flex-shrink: 0;
   background: transparent;
-  color: var(--c-green);
-  border: 1px solid var(--c-green);
+  color: var(--wl-clr, var(--c-green));
+  border: 1px solid var(--wl-clr, var(--c-green));
   font-size: .68rem; font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
   letter-spacing: .08em;
@@ -446,6 +449,7 @@ body { min-height: 100vh; overflow-x: hidden; }
 }
 .btn-download:hover {
   background: var(--enter-hover-bg);
+  opacity: .85;
 }
 .btn-download:disabled { opacity: .35; cursor: not-allowed; }
 .btn-download svg { width: 12px; height: 12px; flex-shrink: 0; }
