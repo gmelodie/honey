@@ -21,8 +21,8 @@ Cowrie listens on 2222/2223 (redirected from 22/23 via iptables). Sessions, logi
 ### 1. Clone
 
 ```bash
-git clone <repo-url> ~/autopot
-cd ~/autopot
+git clone <repo-url> ~/honey
+cd ~/honey
 ```
 
 ### 2. Move your real SSH off port 22
