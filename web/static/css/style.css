@@ -400,6 +400,8 @@ body { min-height: 100vh; overflow-x: hidden; }
   transition: border-color .15s;
 }
 .wl-card:hover { border-color: var(--border-hi); }
+.wl-card--analysis .wl-card-title { color: var(--c-blue); }
+.wl-card--rules    .wl-card-title { color: var(--c-purple); }
 
 .wl-card-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>AutoPot</title>
+  <title>Honey</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,14 +21,14 @@
       <span class="gate-bar-dot"></span>
       <span class="gate-bar-dot"></span>
       <span class="gate-bar-dot"></span>
-      <span class="gate-bar-title" data-i18n="gate.bar">autopot — access control</span>
+      <span class="gate-bar-title" data-i18n="gate.bar">honey — access control</span>
     </div>
     <div class="gate-body">
       <p class="gate-prompt-line">
-        <span class="gate-prompt-sign">root@autopot:~$</span>
+        <span class="gate-prompt-sign">root@honey:~$</span>
         ./stats.sh --auth<span class="gate-blink">_</span>
       </p>
-      <h1 class="gate-title">AUTOPOT</h1>
+      <h1 class="gate-title">HONEY</h1>
       <p class="gate-subtitle" data-i18n="gate.subtitle">automated honeypot — ssh / telnet</p>
       <p class="gate-desc" data-i18n="gate.desc">Verify you're human to access live attack data.</p>
       <button id="enter-btn" class="btn-enter" disabled>
@@ -701,7 +701,7 @@
             </div>
 
             <!-- Trending Passwords -->
-            <div class="wl-card">
+            <div class="wl-card wl-card--analysis">
               <div class="wl-card-header">
                 <div>
                   <h3 class="wl-card-title"><span data-i18n="wl.trending_passwords">Trending Passwords</span><span class="info-tip" data-i18n-tip="wl.trending_passwords.tip" data-tip="Passwords growing in attack frequency compared to the previous period — sorted by relative growth rate."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span></h3>
@@ -733,7 +733,7 @@
             </div>
 
             <!-- Dying Passwords -->
-            <div class="wl-card">
+            <div class="wl-card wl-card--analysis">
               <div class="wl-card-header">
                 <div>
                   <h3 class="wl-card-title"><span data-i18n="wl.dying_passwords">Dying Passwords</span><span class="info-tip" data-i18n-tip="wl.dying_passwords.tip" data-tip="Passwords declining in attack frequency compared to the previous period — sorted by absolute drop in usage."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span></h3>
@@ -765,7 +765,7 @@
             </div>
 
             <!-- Novel Passwords -->
-            <div class="wl-card">
+            <div class="wl-card wl-card--analysis">
               <div class="wl-card-header">
                 <div>
                   <h3 class="wl-card-title"><span data-i18n="wl.novel_passwords">Novel Passwords</span><span class="info-tip" data-i18n-tip="wl.novel_passwords.tip" data-tip="Passwords not found in common reference wordlists — filtered against xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, and darkweb 2017 top 10 k."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span></h3>
@@ -797,7 +797,7 @@
             </div>
 
             <!-- Hashcat Rules -->
-            <div class="wl-card">
+            <div class="wl-card wl-card--rules">
               <div class="wl-card-header">
                 <div>
                   <h3 class="wl-card-title" data-i18n="wl.hashcat_rules">Hashcat Rules</h3>
@@ -825,7 +825,7 @@
             </div>
 
             <!-- John the Ripper Rules -->
-            <div class="wl-card">
+            <div class="wl-card wl-card--rules">
               <div class="wl-card-header">
                 <div>
                   <h3 class="wl-card-title" data-i18n="wl.john_rules">John Rules</h3>
@@ -860,7 +860,7 @@
   </main>
 
   <footer class="footer">
-    autopot &nbsp;//&nbsp; protected by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">reCAPTCHA</a> &nbsp;·&nbsp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">privacy</a> &amp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">terms</a>
+    honey &nbsp;//&nbsp; protected by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">reCAPTCHA</a> &nbsp;·&nbsp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">privacy</a> &amp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">terms</a>
   </footer>
 
 </div><!-- /app -->

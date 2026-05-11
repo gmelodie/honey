@@ -1,4 +1,4 @@
-# autopot
+# honey
 
 SSH/Telnet honeypot that captures attacker sessions and serves them in a live web dashboard with downloadable credential wordlists.
 

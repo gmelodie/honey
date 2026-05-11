@@ -3,7 +3,7 @@
 // ── Translations ──────────────────────────────────────────────────────────
 const STRINGS = {
   en: {
-    'gate.bar':            'autopot — access control',
+    'gate.bar':            'honey — access control',
     'gate.subtitle':       'automated honeypot — ssh / telnet',
     'gate.desc':           "Verify you're human to access live attack data.",
     'gate.btn':            '[ ENTER DASHBOARD ]',
@@ -153,7 +153,7 @@ const STRINGS = {
     'dow': ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
   },
   pt: {
-    'gate.bar':            'autopot — controle de acesso',
+    'gate.bar':            'honey — controle de acesso',
     'gate.subtitle':       'honeypot automatizado — ssh / telnet',
     'gate.desc':           'Verifique que você é humano para acessar os dados de ataque em tempo real.',
     'gate.btn':            '[ ENTRAR NO PAINEL ]',
@@ -953,7 +953,7 @@ document.addEventListener('click', e => {
   btn.disabled = true;
   const a = document.createElement('a');
   a.href = `/api/wordlist/${wtype}/download?period=${currentPeriod}`;
-  a.download = `autopot_${currentPeriod}_${wtype}.txt.gz`;
+  a.download = `honey_${currentPeriod}_${wtype}.txt.gz`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

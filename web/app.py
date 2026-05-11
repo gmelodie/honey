@@ -200,7 +200,7 @@ def wordlist_download(wtype):
         return Response(
             data,
             mimetype="text/plain",
-            headers={"Content-Disposition": f"attachment; filename=autopot_{period}_{ext}"},
+            headers={"Content-Disposition": f"attachment; filename=honey_{period}_{ext}"},
         )
 
     buf = io.BytesIO()
@@ -211,6 +211,6 @@ def wordlist_download(wtype):
     return Response(
         buf.read(),
         mimetype="application/gzip",
-        headers={"Content-Disposition": f"attachment; filename=autopot_{period}_{wtype}.txt.gz"},
+        headers={"Content-Disposition": f"attachment; filename=honey_{period}_{wtype}.txt.gz"},
     )
 

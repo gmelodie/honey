@@ -113,7 +113,7 @@ def compute_web(conn, window):
 
         cur.execute(f"""
             SELECT v.path, count(*) AS visits
-            FROM web_visits v WHERE {vc}
+            FROM web_visits v WHERE {vc} AND v.path != '/'
             GROUP BY v.path ORDER BY visits DESC LIMIT 20
         """, vp)
         web_top_paths = rows(cur)
