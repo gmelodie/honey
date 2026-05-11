@@ -61,33 +61,52 @@ def _jt(suffix):
     return f'Az"{suffix}"'
 
 
+def _detect_case_rules(passwords, sample=500, threshold=0.05):
+    """Return case rules ordered by prevalence, only those above threshold."""
+    pw_sample = passwords[:sample]
+    has_alpha = [pw for pw in pw_sample if any(ch.isalpha() for ch in pw)]
+    if not has_alpha:
+        return []
+    counts = {'l': 0, 'c': 0, 'u': 0}
+    for pw in has_alpha:
+        alpha = [ch for ch in pw if ch.isalpha()]
+        if all(ch.islower() for ch in alpha):
+            counts['l'] += 1
+        elif all(ch.isupper() for ch in alpha):
+            counts['u'] += 1
+        elif pw[0].isupper() and all(ch.islower() for ch in pw[1:] if ch.isalpha()):
+            counts['c'] += 1
+    total = len(has_alpha)
+    return [rule for rule, cnt in sorted(counts.items(), key=lambda x: -x[1])
+            if cnt / total >= threshold]
+
+
 def generate_rules(passwords, top_n=50):
-    counts = Counter(_detect_suffix(pw) for pw in passwords if _detect_suffix(pw))
+    suffix_counts = Counter(_detect_suffix(pw) for pw in passwords if _detect_suffix(pw))
+    case_rules = _detect_case_rules(passwords)
 
     hc = [
         '# autopot — derived mutation rules (hashcat)',
         '# usage: hashcat -a 0 -r hashcat.rule hashes.txt wordlist.txt',
-        '',
-        'c',
-        'u',
-        'l',
     ]
     jt = [
         '[List.Rules:autopot]',
         '# autopot — derived mutation rules',
         '# append section to john.conf, then:',
         '# john --wordlist=words.txt --rules=autopot hashes',
-        '',
-        'c',
-        'u',
-        'l',
     ]
 
-    if counts:
+    if case_rules:
+        hc.append('')
+        jt.append('')
+        hc += case_rules
+        jt += case_rules
+
+    if suffix_counts:
         hc.append('')
         jt.append('')
 
-    for suffix, _ in counts.most_common(top_n):
+    for suffix, _ in suffix_counts.most_common(top_n):
         h, j = _hc(suffix), _jt(suffix)
         hc += [h, f'c {h}']
         jt += [j, f'c{j}']
