@@ -142,7 +142,7 @@ def collect(events):
             download_rows.append({
                 "session":   sid,
                 "timestamp": ts,
-                "url":       ev.get("url", ""),
+                "url":       ev.get("url") or None,
                 "outfile":   ev.get("outfile", ""),
                 "shasum":    ev.get("shasum", ""),
             })

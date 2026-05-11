@@ -82,3 +82,32 @@ CREATE TABLE IF NOT EXISTS web_form_submissions (
     "timestamp" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     form_data JSONB
 );
+
+-- ── Geo/ASN enrichment ────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS ip_geo_cache (
+    ip           VARCHAR(45) PRIMARY KEY,
+    country_iso  CHAR(2),
+    country_name VARCHAR(64),
+    asn          INTEGER,
+    asn_org      VARCHAR(128),
+    looked_up_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS campaign_events (
+    id                     SERIAL PRIMARY KEY,
+    detected_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    onset_time             TIMESTAMPTZ NOT NULL,
+    z_score                NUMERIC(6,2),
+    spike_ratio            NUMERIC(5,3),
+    new_asn_count          INTEGER,
+    peak_rate_per_hour     NUMERIC(10,2),
+    baseline_rate_per_hour NUMERIC(10,2),
+    new_asns               JSONB,
+    top_pairs              JSONB,
+    credential_pattern     VARCHAR(16),
+    active                 BOOLEAN DEFAULT TRUE,
+    CONSTRAINT campaign_events_onset_unique UNIQUE (onset_time)
+);
+
+CREATE INDEX IF NOT EXISTS sessions_ip_idx ON sessions (ip);

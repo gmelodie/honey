@@ -30,6 +30,15 @@ const STRINGS = {
     'card.novel_passwords':       'Novel Passwords',
     'card.novel_passwords.meta':  'not in common lists',
 
+    'section.campaigns':    'Active Campaign Alerts',
+    'section.geo':          'Attack Origins',
+    'section.new_asns':     'New ASNs This Window',
+    'chart.countries':      'Top Countries',
+    'chart.asns':           'Top ASNs',
+    'th.asn_org':           'Organization',
+    'campaign.pattern.novel':       'Novel credentials — possible new tool',
+    'campaign.pattern.established': 'Established credentials — known botnet',
+
     'section.overview':        'Overview',
     'section.timeseries':      'Login Attempts Over Time',
     'section.timing':          'Timing Patterns',
@@ -117,6 +126,8 @@ const STRINGS = {
     'wl.passwords':        'Passwords',
     'wl.pairs':            'Credential Pairs',
     'wl.novel_passwords':  'Novel Passwords',
+    'wl.trending_passwords': 'Trending Passwords',
+    'wl.dying_passwords':    'Dying Passwords',
     'wl.entries':       'entries',
     'wl.rules':         'rules',
     'wl.period':        'period',
@@ -126,8 +137,13 @@ const STRINGS = {
     'wl.john_rules':    'John Rules',
     'wl.preview':                'preview — top 5 by frequency',
     'wl.preview.pairs':          'preview — top 5 by frequency (user:pass format)',
+    'wl.preview.trending_passwords': 'preview — top 5 fastest growing',
+    'wl.preview.dying_passwords':    'preview — top 5 fastest declining',
     'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
     'wl.preview.rules':          'preview — top observed mutations',
+    'wl.trending_passwords.tip': 'Passwords growing in attack frequency compared to the previous period — sorted by relative growth rate.',
+    'wl.dying_passwords.tip':    'Passwords declining in attack frequency compared to the previous period — sorted by absolute drop in usage.',
+    'wl.novel_passwords.tip': 'Passwords not found in common reference wordlists — filtered against xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, and darkweb 2017 top 10 k.',
     'wl.empty':         'no data collected yet',
 
     'meta.success_pct':  n => `${n}% success rate`,
@@ -163,6 +179,15 @@ const STRINGS = {
     'card.malware_hashes.meta':   'hashes de arquivos coletados',
     'card.novel_passwords':       'Senhas Novas',
     'card.novel_passwords.meta':  'não estão em listas comuns',
+
+    'section.campaigns':    'Alertas de Campanha Ativa',
+    'section.geo':          'Origens dos Ataques',
+    'section.new_asns':     'Novos ASNs Neste Período',
+    'chart.countries':      'Top Países',
+    'chart.asns':           'Top ASNs',
+    'th.asn_org':           'Organização',
+    'campaign.pattern.novel':       'Credenciais novas — possível nova ferramenta',
+    'campaign.pattern.established': 'Credenciais conhecidas — botnet estabelecido',
 
     'section.overview':        'Visão Geral',
     'section.timeseries':      'Tentativas de Login ao Longo do Tempo',
@@ -251,6 +276,8 @@ const STRINGS = {
     'wl.passwords':        'Senhas',
     'wl.pairs':            'Pares de Credenciais',
     'wl.novel_passwords':  'Senhas Novas',
+    'wl.trending_passwords': 'Senhas em Alta',
+    'wl.dying_passwords':    'Senhas em Queda',
     'wl.entries':       'entradas',
     'wl.rules':         'regras',
     'wl.period':        'período',
@@ -260,8 +287,13 @@ const STRINGS = {
     'wl.john_rules':    'Regras John',
     'wl.preview':                'prévia — top 20 por frequência',
     'wl.preview.pairs':          'prévia — top 20 por frequência (formato usuário:senha)',
+    'wl.preview.trending_passwords': 'prévia — top 5 crescendo mais rápido',
+    'wl.preview.dying_passwords':    'prévia — top 5 declinando mais rápido',
     'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
     'wl.preview.rules':          'prévia — mutações mais observadas',
+    'wl.trending_passwords.tip': 'Senhas com frequência de ataque crescente em comparação ao período anterior — ordenadas pela taxa de crescimento relativo.',
+    'wl.dying_passwords.tip':    'Senhas com frequência de ataque declinante em comparação ao período anterior — ordenadas pela queda absoluta no uso.',
+    'wl.novel_passwords.tip': 'Senhas não encontradas em listas de referência comuns — filtradas contra xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k e darkweb 2017 top 10 k.',
     'wl.empty':         'nenhum dado coletado ainda',
 
     'meta.success_pct':  n => `${n}% taxa de sucesso`,
@@ -293,12 +325,17 @@ function applyLang(lang) {
     if (typeof val === 'string') el.textContent = val;
   });
 
+  document.querySelectorAll('[data-i18n-tip]').forEach(el => {
+    const val = t(el.dataset.i18nTip);
+    if (typeof val === 'string') el.dataset.tip = val;
+  });
+
   document.querySelectorAll('.lang-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === lang);
   });
 
   // Re-render live data with new language (translated DOW labels, empty states, etc.)
-  if (lastData && !$('page-dashboard').hidden) {
+  if (lastData && (!$('page-ssh').hidden || !$('page-http').hidden)) {
     destroyCharts();
     renderAll(lastData);
   }
@@ -451,10 +488,12 @@ document.querySelectorAll('.page-tab').forEach(btn => {
     document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const page = btn.dataset.page;
-    $('page-dashboard').hidden = page !== 'dashboard';
+    $('page-ssh').hidden       = page !== 'ssh';
+    $('page-http').hidden      = page !== 'http';
     $('page-wordlists').hidden = page !== 'wordlists';
-    $('dashboard-controls').style.display = page === 'dashboard' ? 'flex' : 'none';
+    $('dashboard-controls').style.display = page === 'wordlists' ? 'none' : 'flex';
     if (page === 'wordlists' && !wordlistsLoaded) loadWordlists();
+    if (page === 'http') requestAnimationFrame(() => Object.values(activeCharts).forEach(c => c.resize()));
   });
 });
 
@@ -474,20 +513,24 @@ document.querySelectorAll('.win-tab').forEach(btn => {
 $('refresh-btn').addEventListener('click', () => loadStats());
 
 // ── Activity log tabs ─────────────────────────────────────────────────────
-document.querySelectorAll('.log-tab').forEach(btn => {
+document.querySelectorAll('.log-tab[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.log-tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.log-panel').forEach(p => p.hidden = true);
+    const section = btn.closest('section');
+    section.querySelectorAll('.log-tab').forEach(b => b.classList.remove('active'));
+    section.querySelectorAll('.log-panel').forEach(p => p.hidden = true);
     btn.classList.add('active');
     $('tab-' + btn.dataset.tab).hidden = false;
   });
 });
 
-// ── Dashboard fetch ───────────────────────────────────────────────────────
+// ── Stats fetch ───────────────────────────────────────────────────────────
 async function loadStats() {
   $('loading').hidden    = false;
   $('stats-root').hidden = true;
+  $('http-loading').hidden = false;
+  $('http-root').hidden    = true;
   $('loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
+  $('http-loading').innerHTML = `<div class="spinner"></div><p>${t('loading.stats.spin')}</p>`;
 
   for (;;) {
     try {
@@ -502,15 +545,16 @@ async function loadStats() {
       lastData = data;
       destroyCharts();
       renderAll(data);
-      $('loading').hidden    = true;
-      $('stats-root').hidden = false;
+      $('loading').hidden      = true;
+      $('stats-root').hidden   = false;
+      $('http-loading').hidden = true;
+      $('http-root').hidden    = false;
       $('last-updated').textContent = new Date().toLocaleTimeString();
       return;
     } catch (err) {
-      $('loading').innerHTML =
-        `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center">
-          ERR: ${esc(err.message)}
-        </p>`;
+      const msg = `<p style="color:var(--c-red);font-family:'JetBrains Mono',monospace;text-align:center">ERR: ${esc(err.message)}</p>`;
+      $('loading').innerHTML     = msg;
+      $('http-loading').innerHTML = msg;
       return;
     }
   }
@@ -655,11 +699,13 @@ function renderAll(d) {
   const web = d.web || {};
   const wo  = web.overview || {};
 
-  if (wo.visits      != null) counter($('v-web-visits'),       wo.visits);
-  if (wo.unique_ips  != null) counter($('v-web-ips'),          wo.unique_ips);
-  if (wo.submissions != null) counter($('v-web-submissions'),  wo.submissions);
-  if (wo.unique_paths != null) counter($('v-web-paths'),       wo.unique_paths);
-  if (wo.unique_uas  != null) counter($('v-web-uas'),          wo.unique_uas);
+  if (wo.visits            != null) counter($('v-web-visits'),            wo.visits);
+  if (wo.unique_ips        != null) counter($('v-web-ips'),               wo.unique_ips);
+  if (wo.submissions       != null) counter($('v-web-submissions'),       wo.submissions);
+  if (wo.unique_paths      != null) counter($('v-web-paths'),             wo.unique_paths);
+  if (wo.unique_uas        != null) counter($('v-web-uas'),               wo.unique_uas);
+  if (wo.unique_passwords  != null) counter($('v-web-unique-passwords'),  wo.unique_passwords);
+  if (wo.unique_usernames  != null) counter($('v-web-unique-usernames'),  wo.unique_usernames);
 
   if (web.timeseries && web.timeseries.length) {
     const labels = web.timeseries.map(r => fmtTime(r.t, currentWindow));
@@ -747,6 +793,90 @@ function renderAll(d) {
      <td class="mono">${esc(fd.username || '—')}</td>
      <td class="mono">${esc(fd.password || '—')}</td>`;
   });
+
+  // ── Geo / ASN ─────────────────────────────────────────────────────────────
+  const geo = d.geo || {};
+  const hasGeo = (geo.top_countries && geo.top_countries.length) ||
+                 (geo.top_asns && geo.top_asns.length);
+  $('section-geo').hidden = !hasGeo;
+
+  if (geo.top_countries && geo.top_countries.length) {
+    choroplethChart('chart-countries', geo.top_countries).then(chart => {
+      activeCharts['geo-countries'] = chart;
+    });
+  }
+
+  if (geo.top_asns && geo.top_asns.length) {
+    activeCharts['geo-asns'] = hbarChart('chart-asns',
+      geo.top_asns.map(r => r.asn_org ? `AS${r.asn} ${r.asn_org}` : `AS${r.asn}`),
+      geo.top_asns.map(r => r.sessions),
+      GBX.orange + 'cc');
+  }
+
+  const newAsns = geo.new_asns || [];
+  $('section-new-asns').hidden = !newAsns.length;
+  fillTable('tbl-new-asns', newAsns, r =>
+    `<td class="rank">${r._rank}</td>
+     <td class="mono">AS${r.asn}</td>
+     <td class="mono truncate">${esc(r.asn_org || '—')}</td>
+     <td class="mono">${fmtTs(r.first_seen)}</td>
+     <td class="num mono">${Number(r.attempts).toLocaleString()}</td>`
+  );
+
+  // ── Campaign alerts ───────────────────────────────────────────────────────
+  const campaigns = d.campaigns || [];
+  $('section-campaigns').hidden = !campaigns.length;
+
+  if (campaigns.length) {
+    $('campaign-alerts-list').innerHTML = campaigns.map(c => {
+      const isNovel      = c.credential_pattern === 'novel';
+      const patternLabel = t(isNovel ? 'campaign.pattern.novel' : 'campaign.pattern.established');
+      const asnRows = (c.new_asns || []).map(a =>
+        `<tr>
+          <td class="mono">AS${a.asn}</td>
+          <td class="mono truncate">${esc(a.asn_org || '—')}</td>
+          <td class="num mono">${Number(a.attempts).toLocaleString()}</td>
+        </tr>`
+      ).join('');
+      return `
+        <div class="campaign-card">
+          <div class="campaign-header">
+            <span class="campaign-label">CAMPAIGN #${c.id}</span>
+            <span class="campaign-badge ${isNovel ? 'badge-campaign-novel' : 'badge-campaign-established'}">${esc(patternLabel)}</span>
+          </div>
+          <div class="campaign-stats">
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Onset</span>
+              <span class="campaign-stat-val mono">${fmtTs(c.onset_time)}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Z-Score</span>
+              <span class="campaign-stat-val mono" style="color:var(--c-red)">${c.z_score.toFixed(2)}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Peak/hr</span>
+              <span class="campaign-stat-val mono">${Math.round(c.peak_rate_per_hour).toLocaleString()}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">Baseline/hr</span>
+              <span class="campaign-stat-val mono">${Math.round(c.baseline_rate_per_hour).toLocaleString()}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">New ASNs</span>
+              <span class="campaign-stat-val mono">${c.new_asn_count}</span>
+            </div>
+            <div class="campaign-stat">
+              <span class="campaign-stat-label">New-ASN Traffic</span>
+              <span class="campaign-stat-val mono">${Math.round(c.spike_ratio * 100)}%</span>
+            </div>
+          </div>
+          ${asnRows ? `<table class="data-tbl" style="margin-top:10px">
+            <thead><tr><th>ASN</th><th data-i18n="th.asn_org">Organization</th><th data-i18n="th.attempts">Attempts</th></tr></thead>
+            <tbody>${asnRows}</tbody>
+          </table>` : ''}
+        </div>`;
+    }).join('');
+  }
 }
 
 // ── Wordlists ─────────────────────────────────────────────────────────────
@@ -842,6 +972,100 @@ function counter(el, target) {
     if (cur < target) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+}
+
+// ── Choropleth world map ──────────────────────────────────────────────────
+let _worldAtlas = null;
+async function _fetchWorldAtlas() {
+  if (!_worldAtlas) {
+    const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    _worldAtlas = await res.json();
+  }
+  return _worldAtlas;
+}
+
+// ISO 3166-1 alpha-2 → numeric
+const ISO2_NUM = {
+  AF:4,AX:248,AL:8,DZ:12,AS:16,AD:20,AO:24,AI:660,AG:28,AR:32,AM:51,AW:533,
+  AU:36,AT:40,AZ:31,BS:44,BH:48,BD:50,BB:52,BY:112,BE:56,BZ:84,BJ:204,BM:60,
+  BT:64,BO:68,BQ:535,BA:70,BW:72,BR:76,IO:86,VG:92,BN:96,BG:100,BF:854,BI:108,
+  CV:132,KH:116,CM:120,CA:124,KY:136,CF:140,TD:148,CL:152,CN:156,HK:344,MO:446,
+  CX:162,CC:166,CO:170,KM:174,CG:178,CD:180,CK:184,CR:188,HR:191,CU:192,CW:531,
+  CY:196,CZ:203,CI:384,DK:208,DJ:262,DM:212,DO:214,EC:218,EG:818,SV:222,GQ:226,
+  ER:232,EE:233,SZ:748,ET:231,FK:238,FO:234,FJ:242,FI:246,FR:250,GF:254,PF:258,
+  TF:260,GA:266,GM:270,GE:268,DE:276,GH:288,GI:292,GR:300,GL:304,GD:308,GP:312,
+  GU:316,GT:320,GG:831,GN:324,GW:624,GY:328,HT:332,HM:334,VA:336,HN:340,HU:348,
+  IS:352,IN:356,ID:360,IR:364,IQ:368,IE:372,IM:833,IL:376,IT:380,JM:388,JP:392,
+  JE:832,JO:400,KZ:398,KE:404,KI:296,KP:408,KR:410,KW:414,KG:417,LA:418,LV:428,
+  LB:422,LS:426,LR:430,LY:434,LI:438,LT:440,LU:442,MG:450,MW:454,MY:458,MV:462,
+  ML:466,MT:470,MH:584,MQ:474,MR:478,MU:480,YT:175,MX:484,FM:583,MD:498,MC:492,
+  MN:496,ME:499,MS:500,MA:504,MZ:508,MM:104,NA:516,NR:520,NP:524,NL:528,NC:540,
+  NZ:554,NI:558,NE:562,NG:566,NU:570,NF:574,MK:807,MP:580,NO:578,OM:512,PK:586,
+  PW:585,PS:275,PA:591,PG:598,PY:600,PE:604,PH:608,PN:612,PL:616,PT:620,PR:630,
+  QA:634,RE:638,RO:642,RU:643,RW:646,BL:652,SH:654,KN:659,LC:662,MF:663,PM:666,
+  VC:670,WS:882,SM:674,ST:678,SA:682,SN:686,RS:688,SC:690,SL:694,SG:702,SX:534,
+  SK:703,SI:705,SB:90,SO:706,ZA:710,GS:239,SS:728,ES:724,LK:144,SD:729,SR:740,
+  SJ:744,SE:752,CH:756,SY:760,TW:158,TJ:762,TZ:834,TH:764,TL:626,TG:768,TK:772,
+  TO:776,TT:780,TN:788,TR:792,TM:795,TC:796,TV:798,UM:581,VI:850,UG:800,UA:804,
+  AE:784,GB:826,US:840,UY:858,UZ:860,VU:548,VE:862,VN:704,WF:876,EH:732,YE:887,
+  ZM:894,ZW:716,XK:383,KP:408,SS:728,
+};
+
+async function choroplethChart(canvasId, countryData) {
+  const existing = Chart.getChart(canvasId);
+  if (existing) existing.destroy();
+
+  const topology = await _fetchWorldAtlas();
+  const features = topojson.feature(topology, topology.objects.countries).features;
+
+  const byNum = {};
+  for (const r of countryData) {
+    const n = ISO2_NUM[r.country_iso];
+    if (n) byNum[n] = r.sessions;
+  }
+  const maxVal = Math.max(...Object.values(byNum), 1);
+  const dark = document.documentElement.dataset.theme === 'dark';
+
+  return new Chart($(canvasId), {
+    type: 'choropleth',
+    data: {
+      labels: features.map(f => f.properties.name),
+      datasets: [{
+        data: features.map(f => ({ feature: f, value: byNum[+f.id] ?? 0 })),
+        backgroundColor(ctx) {
+          const v = ctx.dataset.data[ctx.dataIndex]?.value ?? 0;
+          if (!v) return dark ? '#1e2025' : '#e8eaed';
+          const a = (0.18 + 0.82 * (v / maxVal)).toFixed(2);
+          return `rgba(220,50,47,${a})`;
+        },
+        borderColor: dark ? '#2e3138' : '#c8ccd2',
+        borderWidth: 0.4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title(items) {
+              const f = items[0]?.dataset.data[items[0].dataIndex]?.feature;
+              return f?.properties?.name ?? '';
+            },
+            label(ctx) {
+              const v = ctx.dataset.data[ctx.dataIndex]?.value;
+              return v ? ` ${v.toLocaleString()} sessions` : ' no data';
+            },
+          },
+        },
+      },
+      scales: {
+        projection: { type: 'projection', axis: 'x', projection: 'equalEarth', position: 'chartArea', display: false },
+        color:      { type: 'color',      axis: 'x', display: false },
+      },
+    },
+  });
 }
 
 // ── Chart helpers ─────────────────────────────────────────────────────────

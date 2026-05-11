@@ -9,8 +9,9 @@ from datetime import datetime, timedelta, timezone
 app = Flask(__name__)
 
 
-RECAPTCHA_SEC  = os.environ.get("RECAPTCHA_SECRET_KEY", "")
-RECAPTCHA_SITE = os.environ.get("RECAPTCHA_SITE_KEY", "")
+RECAPTCHA_SEC   = os.environ.get("RECAPTCHA_SECRET_KEY", "")
+RECAPTCHA_SITE  = os.environ.get("RECAPTCHA_SITE_KEY", "")
+RECAPTCHA_SCORE = float(os.environ.get("RECAPTCHA_MIN_SCORE", "0.5"))
 
 STATS_DIR = os.environ.get("STATS_DIR", "/stats")
 
@@ -24,6 +25,8 @@ def index():
 
 @app.route("/api/verify-captcha", methods=["POST"])
 def verify_captcha():
+    if not RECAPTCHA_SEC:
+        return jsonify({"success": True})
     data = request.get_json(silent=True) or {}
     token = data.get("token", "")
     if not token:
@@ -34,7 +37,7 @@ def verify_captcha():
         timeout=10,
     )
     body = resp.json()
-    ok = bool(body.get("success")) and float(body.get("score", 0)) >= 0.5
+    ok = bool(body.get("success")) and float(body.get("score", 0)) >= RECAPTCHA_SCORE
     return jsonify({"success": ok})
 
 
@@ -72,12 +75,14 @@ WL_PERIODS = {
 
 # Maps URL wtype param -> filename used by generate-wordlists.py
 WL_FILES = {
-    "usernames":       "usernames.txt",
-    "passwords":       "passwords.txt",
-    "pairs":           "passwords_usernames.txt",
-    "novel_passwords": "novel_passwords.txt",
-    "hashcat_rules":   "hashcat.rule",
-    "john_rules":      "john.rule",
+    "usernames":          "usernames.txt",
+    "passwords":          "passwords.txt",
+    "pairs":              "passwords_usernames.txt",
+    "novel_passwords":    "novel_passwords.txt",
+    "trending_passwords": "trending_passwords.txt",
+    "dying_passwords":    "dying_passwords.txt",
+    "hashcat_rules":      "hashcat.rule",
+    "john_rules":         "john.rule",
 }
 
 RULE_TYPES = {"hashcat_rules", "john_rules"}
@@ -164,13 +169,15 @@ def wordlist_meta():
         }
 
     return jsonify({
-        "period":          period,
-        "usernames":       info("usernames"),
-        "passwords":       info("passwords"),
-        "pairs":           info("pairs"),
-        "novel_passwords": info("novel_passwords"),
-        "hashcat_rules":   info("hashcat_rules"),
-        "john_rules":      info("john_rules"),
+        "period":             period,
+        "usernames":          info("usernames"),
+        "passwords":          info("passwords"),
+        "pairs":              info("pairs"),
+        "novel_passwords":    info("novel_passwords"),
+        "trending_passwords": info("trending_passwords"),
+        "dying_passwords":    info("dying_passwords"),
+        "hashcat_rules":      info("hashcat_rules"),
+        "john_rules":         info("john_rules"),
     })
 
 

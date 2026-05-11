@@ -114,19 +114,19 @@ class Output(cowrie.core.output.Output):
         elif event["eventid"] == "cowrie.session.file_download":
             self.simpleQuery(
                 "INSERT INTO downloads (session, timestamp, url, outfile, shasum) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s)",
-                (event["session"], event["time"], event.get("url", ""), event["outfile"], event["shasum"]),
+                (event["session"], event["time"], event.get("url") or None, event["outfile"], event["shasum"]),
             )
 
         elif event["eventid"] == "cowrie.session.file_download.failed":
             self.simpleQuery(
                 "INSERT INTO downloads (session, timestamp, url, outfile, shasum) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s)",
-                (event["session"], event["time"], event.get("url", ""), None, None),
+                (event["session"], event["time"], event.get("url") or None, None, None),
             )
 
         elif event["eventid"] == "cowrie.session.file_upload":
             self.simpleQuery(
                 "INSERT INTO downloads (session, timestamp, url, outfile, shasum) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s)",
-                (event["session"], event["time"], "", event["outfile"], event["shasum"]),
+                (event["session"], event["time"], None, event["outfile"], event["shasum"]),
             )
 
         elif event["eventid"] == "cowrie.session.input":

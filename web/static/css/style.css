@@ -238,6 +238,28 @@ body { min-height: 100vh; overflow-x: hidden; }
 .icon-btn svg { width: 13px; height: 13px; }
 .icon-btn:hover { border-color: var(--c-green); color: var(--fg); }
 
+.info-tip {
+  position: relative; display: inline-flex; align-items: center;
+  vertical-align: middle; margin-left: 5px; cursor: default;
+  color: var(--fg-dim);
+}
+.info-tip svg { width: 13px; height: 13px; }
+.info-tip::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 7px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--fg); font-size: .68rem; line-height: 1.45;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 7px 10px; border-radius: 4px;
+  width: 230px; white-space: normal;
+  box-shadow: var(--shadow);
+  opacity: 0; pointer-events: none;
+  transition: opacity .12s;
+  z-index: 200;
+}
+.info-tip:hover::after { opacity: 1; }
+
 /* ── Content ─────────────────────────────────────────────────────────── */
 .content { flex: 1; padding: 24px 20px; max-width: 1320px; margin: 0 auto; width: 100%; }
 
@@ -450,6 +472,44 @@ body { min-height: 100vh; overflow-x: hidden; }
   font-family: 'JetBrains Mono', monospace;
   font-size: .72rem; color: var(--fg-dim);
   text-align: center; padding: 30px 0;
+}
+
+/* ── Campaign alert cards ────────────────────────────────────────────── */
+.campaign-card {
+  background: var(--bg-card);
+  border: 1px solid var(--c-red);
+  border-left: 4px solid var(--c-red);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.campaign-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.campaign-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .72rem; font-weight: 700;
+  color: var(--c-red); letter-spacing: .08em;
+}
+.campaign-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem; font-weight: 600;
+  padding: 2px 8px; border-radius: 3px;
+}
+.badge-campaign-novel       { background: var(--c-orange); color: var(--bg); }
+.badge-campaign-established { background: var(--c-yellow); color: var(--bg); }
+.campaign-stats {
+  display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 10px;
+}
+.campaign-stat { display: flex; flex-direction: column; gap: 2px; }
+.campaign-stat-label {
+  font-size: .62rem; color: var(--fg-dim);
+  text-transform: uppercase; letter-spacing: .05em;
+  font-family: 'JetBrains Mono', monospace;
+}
+.campaign-stat-val {
+  font-size: .82rem; font-weight: 600;
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────── */

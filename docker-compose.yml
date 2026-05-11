@@ -49,6 +49,19 @@ services:
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
+  # GeoIP database downloader — runs once, skips if databases already present
+  geoip-init:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.geoip-init
+    restart: "no"
+    environment:
+      - GEOIP_DIR=/geoip
+    volumes:
+      - ./scripts/geoip-init.sh:/geoip-init.sh:ro
+      - geoip:/geoip
+    entrypoint: ["/bin/sh", "/geoip-init.sh"]
+
   # Stats generator — runs on startup then every 5 minutes
   stats-gen:
     build:
@@ -65,14 +78,19 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - STATS_DIR=/stats
       - WORDLIST_DIR=/wordlists
+      - GEOIP_COUNTRY_DB=/geoip/country.mmdb
+      - GEOIP_ASN_DB=/geoip/asn.mmdb
     volumes:
       - ./scripts/generate-stats.py:/generate-stats.py:ro
       - ./scripts/stats-gen.sh:/stats-gen.sh:ro
       - stats:/stats
       - wordlists:/wordlists:ro
+      - geoip:/geoip:ro
     entrypoint: ["/bin/sh", "/stats-gen.sh"]
     depends_on:
       postgres-init:
+        condition: service_completed_successfully
+      geoip-init:
         condition: service_completed_successfully
 
   # Bloom filter builder — runs once on startup, skips if filter already exists
@@ -84,14 +102,14 @@ services:
     network_mode: host
     environment:
       - BLOOM_DIR=/bloom
-      # Space-separated URLs to download and build the filter from.
-      # Override in .env to add WeakPass or other sources.
-      - BLOOM_WORDLIST_URLS=${BLOOM_WORDLIST_URLS:-https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/xato-net-10-million-passwords-1000000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt}
+      # Space-separated URLs; downloaded one at a time to minimise disk usage.
+      # Lists: xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, darkweb 2017 top 10 k.
+      # Override in .env to customise.
+      - BLOOM_WORDLIST_URLS=${BLOOM_WORDLIST_URLS:-https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/xato-net-10-million-passwords-1000000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Pwdb_top-1000000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/probable-v2_top-12000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/darkweb2017_top-10000.txt}
     volumes:
-      - ./scripts/build-bloom-filters.py:/build-bloom-filters.py:ro
-      - ./scripts/bloom-init.sh:/bloom-init.sh:ro
+      - ./scripts/bloom-init.py:/bloom-init.py:ro
       - bloom:/bloom
-    entrypoint: ["/bin/sh", "/bloom-init.sh"]
+    entrypoint: ["/usr/local/bin/python", "/bloom-init.py"]
 
   # Wordlist generator — runs on startup then every 6 hours via cron
   wordlist-gen:
@@ -197,3 +215,4 @@ volumes:
   wordlists:
   stats:
   bloom:
+  geoip:

@@ -6,12 +6,19 @@ Run on a schedule (e.g. every 5 minutes); the web server serves the cached files
 
 import json
 import os
+import statistics
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psycopg2
 import psycopg2.extras
+
+try:
+    import maxminddb
+    _MAXMINDDB_AVAILABLE = True
+except ImportError:
+    _MAXMINDDB_AVAILABLE = False
 
 STATS_DIR    = os.environ.get("STATS_DIR",    "/stats")
 WORDLIST_DIR = os.environ.get("WORDLIST_DIR", "/wordlists")
@@ -89,6 +96,22 @@ def compute_web(conn, window):
         web_unique_uas = int(cur.fetchone()["v"])
 
         cur.execute(f"""
+            SELECT count(DISTINCT f.form_data->>'password') AS v
+            FROM web_form_submissions f WHERE {fc}
+              AND f.form_data->>'password' IS NOT NULL
+              AND f.form_data->>'password' != ''
+        """, fp)
+        web_unique_passwords = int(cur.fetchone()["v"])
+
+        cur.execute(f"""
+            SELECT count(DISTINCT f.form_data->>'username') AS v
+            FROM web_form_submissions f WHERE {fc}
+              AND f.form_data->>'username' IS NOT NULL
+              AND f.form_data->>'username' != ''
+        """, fp)
+        web_unique_usernames = int(cur.fetchone()["v"])
+
+        cur.execute(f"""
             SELECT v.path, count(*) AS visits
             FROM web_visits v WHERE {vc}
             GROUP BY v.path ORDER BY visits DESC LIMIT 20
@@ -105,7 +128,7 @@ def compute_web(conn, window):
         cur.execute(f"""
             SELECT v.user_agent, count(*) AS visits
             FROM web_visits v WHERE {vc} AND v.user_agent != ''
-            GROUP BY v.user_agent ORDER BY visits DESC LIMIT 20
+            GROUP BY v.user_agent ORDER BY visits DESC LIMIT 10
         """, vp)
         web_top_uas = rows(cur)
 
@@ -178,11 +201,13 @@ def compute_web(conn, window):
 
     return {
         "overview": {
-            "visits":          web_visits,
-            "unique_ips":      web_unique_ips,
-            "submissions":     web_submissions,
-            "unique_paths":    web_unique_paths,
-            "unique_uas":      web_unique_uas,
+            "visits":            web_visits,
+            "unique_ips":        web_unique_ips,
+            "submissions":       web_submissions,
+            "unique_paths":      web_unique_paths,
+            "unique_uas":        web_unique_uas,
+            "unique_passwords":  web_unique_passwords,
+            "unique_usernames":  web_unique_usernames,
         },
         "top_paths":       web_top_paths,
         "top_ips":         web_top_ips,
@@ -207,6 +232,371 @@ def _safe_compute_web(conn, window):
                 "top_usernames": [], "top_passwords": [],
                 "visit_log": [], "submission_log": []}
 
+def load_geo_readers():
+    if not _MAXMINDDB_AVAILABLE:
+        return None, None
+    country_path = os.environ.get("GEOIP_COUNTRY_DB")
+    asn_path     = os.environ.get("GEOIP_ASN_DB")
+    if not country_path or not asn_path:
+        return None, None
+    try:
+        cr = maxminddb.open_database(country_path)
+        ar = maxminddb.open_database(asn_path)
+        return cr, ar
+    except Exception as e:
+        print(f"WARNING: GeoIP readers failed to load: {e}", file=sys.stderr)
+        return None, None
+
+
+def _lookup_ip(ip, country_reader, asn_reader):
+    country_iso = country_name = asn = asn_org = None
+    if country_reader:
+        try:
+            r = country_reader.get(ip)
+            if r:
+                c = r.get("country")
+                if isinstance(c, dict):
+                    # MaxMind GeoLite2 format: {"country": {"iso_code": "US", "names": {...}}}
+                    country_iso  = c.get("iso_code")
+                    country_name = (c.get("names") or {}).get("en")
+                elif isinstance(c, str) and c:
+                    # db-ip.com flat format: {"country": "US"}
+                    country_iso = c
+        except Exception as e:
+            print(f"  WARNING: country lookup failed for {ip}: {e}", file=sys.stderr)
+    if asn_reader:
+        try:
+            r = asn_reader.get(ip)
+            if r:
+                asn     = r.get("autonomous_system_number")
+                asn_org = r.get("autonomous_system_organization")
+        except Exception as e:
+            print(f"  WARNING: ASN lookup failed for {ip}: {e}", file=sys.stderr)
+    return country_iso, country_name, asn, asn_org
+
+
+def enrich_new_ips(conn, country_reader, asn_reader):
+    if country_reader is None and asn_reader is None:
+        print("  GeoIP readers unavailable, skipping enrichment", file=sys.stderr)
+        return
+    with conn.cursor() as cur:
+        # Pick up IPs not yet cached AND IPs previously cached with no country data
+        # (e.g. from a prior run where the db-ip format was misread)
+        cur.execute("""
+            SELECT DISTINCT s.ip FROM sessions s
+            WHERE s.ip IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM ip_geo_cache c
+                WHERE c.ip = s.ip AND c.country_iso IS NOT NULL
+              )
+            LIMIT 5000
+        """)
+        ips = [r[0] for r in cur.fetchall()]
+    if not ips:
+        return
+    batch = []
+    for ip in ips:
+        country_iso, country_name, asn, asn_org = _lookup_ip(ip, country_reader, asn_reader)
+        batch.append((ip, country_iso, country_name, asn, asn_org))
+    with conn.cursor() as cur:
+        psycopg2.extras.execute_values(cur, """
+            INSERT INTO ip_geo_cache (ip, country_iso, country_name, asn, asn_org)
+            VALUES %s
+            ON CONFLICT (ip) DO UPDATE SET
+                country_iso  = EXCLUDED.country_iso,
+                country_name = EXCLUDED.country_name,
+                asn          = COALESCE(EXCLUDED.asn,     ip_geo_cache.asn),
+                asn_org      = COALESCE(EXCLUDED.asn_org, ip_geo_cache.asn_org),
+                looked_up_at = NOW()
+            WHERE ip_geo_cache.country_iso IS NULL
+        """, batch)
+    print(f"  Geo-enriched {len(batch)} new IPs")
+
+
+def compute_geo(conn, window):
+    delta = WINDOWS[window]
+    now   = datetime.now(timezone.utc)
+    since = None if delta is None else now - delta
+    sc, sp = cond("s.starttime", since)
+
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(f"SELECT count(*) AS v FROM sessions s WHERE {sc}", sp)
+        total = int(cur.fetchone()["v"])
+
+        cur.execute(f"""
+            SELECT count(*) AS v FROM sessions s
+            JOIN ip_geo_cache g ON g.ip = s.ip
+            WHERE {sc} AND g.country_iso IS NOT NULL
+        """, sp)
+        covered = int(cur.fetchone()["v"])
+
+        cur.execute(f"""
+            SELECT g.country_iso, g.country_name, count(*) AS sessions
+            FROM sessions s
+            JOIN ip_geo_cache g ON g.ip = s.ip
+            WHERE {sc} AND g.country_iso IS NOT NULL
+            GROUP BY g.country_iso, g.country_name
+            ORDER BY sessions DESC LIMIT 15
+        """, sp)
+        top_countries = [
+            {
+                "country_iso":  r["country_iso"],
+                "country_name": r["country_name"],
+                "sessions":     int(r["sessions"]),
+                "pct":          round(100 * r["sessions"] / max(total, 1), 1),
+            }
+            for r in cur.fetchall()
+        ]
+
+        cur.execute(f"""
+            SELECT g.asn, g.asn_org, count(*) AS sessions
+            FROM sessions s
+            JOIN ip_geo_cache g ON g.ip = s.ip
+            WHERE {sc} AND g.asn IS NOT NULL
+            GROUP BY g.asn, g.asn_org
+            ORDER BY sessions DESC LIMIT 15
+        """, sp)
+        top_asns = [
+            {
+                "asn":      r["asn"],
+                "asn_org":  r["asn_org"],
+                "sessions": int(r["sessions"]),
+                "pct":      round(100 * r["sessions"] / max(total, 1), 1),
+            }
+            for r in cur.fetchall()
+        ]
+
+        new_asns = []
+        if since is not None:
+            cur.execute("""
+                SELECT g.asn, g.asn_org,
+                       min(s.starttime) AS first_seen,
+                       count(DISTINCT s.id) AS sessions
+                FROM sessions s
+                JOIN ip_geo_cache g ON g.ip = s.ip
+                WHERE g.asn IS NOT NULL
+                GROUP BY g.asn, g.asn_org
+                HAVING min(s.starttime) >= %s
+                ORDER BY sessions DESC LIMIT 20
+            """, (since,))
+            new_asn_rows = cur.fetchall()
+            if new_asn_rows:
+                asn_ids = [r["asn"] for r in new_asn_rows]
+                cur.execute("""
+                    SELECT g.asn, count(*) AS attempts
+                    FROM auth a
+                    JOIN sessions s ON a.session = s.id
+                    JOIN ip_geo_cache g ON g.ip = s.ip
+                    WHERE a.timestamp >= %s AND g.asn = ANY(%s)
+                    GROUP BY g.asn
+                """, (since, asn_ids))
+                attempt_map = {r["asn"]: int(r["attempts"]) for r in cur.fetchall()}
+                new_asns = [
+                    {
+                        "asn":        r["asn"],
+                        "asn_org":    r["asn_org"],
+                        "first_seen": r["first_seen"].isoformat(),
+                        "sessions":   int(r["sessions"]),
+                        "attempts":   attempt_map.get(r["asn"], 0),
+                    }
+                    for r in new_asn_rows
+                ]
+
+    coverage_pct = round(100 * covered / max(total, 1), 1) if total > 0 else 0.0
+    return {
+        "top_countries": top_countries,
+        "top_asns":      top_asns,
+        "new_asns":      new_asns,
+        "coverage_pct":  coverage_pct,
+    }
+
+
+def _safe_compute_geo(conn, window):
+    try:
+        return compute_geo(conn, window)
+    except Exception as e:
+        print(f"WARNING: geo stats skipped: {e}", file=sys.stderr)
+        return {"top_countries": [], "top_asns": [], "new_asns": [], "coverage_pct": 0.0}
+
+
+def _get_active_campaigns(conn):
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("""
+            SELECT id, detected_at, onset_time, z_score, spike_ratio,
+                   new_asn_count, peak_rate_per_hour, baseline_rate_per_hour,
+                   new_asns, top_pairs, credential_pattern
+            FROM campaign_events
+            WHERE active = TRUE
+            ORDER BY onset_time DESC
+        """)
+        return [
+            {
+                "id":                     r["id"],
+                "detected_at":            r["detected_at"].isoformat(),
+                "onset_time":             r["onset_time"].isoformat(),
+                "z_score":                float(r["z_score"]),
+                "spike_ratio":            float(r["spike_ratio"]),
+                "new_asn_count":          r["new_asn_count"],
+                "peak_rate_per_hour":     float(r["peak_rate_per_hour"]),
+                "baseline_rate_per_hour": float(r["baseline_rate_per_hour"]),
+                "new_asns":               r["new_asns"],
+                "top_pairs":              r["top_pairs"],
+                "credential_pattern":     r["credential_pattern"],
+            }
+            for r in cur.fetchall()
+        ]
+
+
+def compute_campaigns(conn):
+    now                    = datetime.now(timezone.utc)
+    detection_window_start = now - timedelta(hours=2)
+    baseline_start         = now - timedelta(days=7)
+    baseline_end           = detection_window_start
+
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("""
+            SELECT date_trunc('hour', a.timestamp) AS bucket, count(*) AS attempts
+            FROM auth a
+            WHERE a.timestamp >= %s AND a.timestamp < %s
+            GROUP BY bucket ORDER BY bucket
+        """, (baseline_start, baseline_end))
+        baseline_buckets = [int(r["attempts"]) for r in cur.fetchall()]
+
+        if len(baseline_buckets) < 12:
+            return _get_active_campaigns(conn)
+
+        baseline_mean   = statistics.mean(baseline_buckets)
+        baseline_stddev = statistics.stdev(baseline_buckets) if len(baseline_buckets) > 1 else 0.0
+
+        cur.execute("""
+            SELECT count(*) AS attempts FROM auth a WHERE a.timestamp >= %s
+        """, (detection_window_start,))
+        current_attempts = int(cur.fetchone()["attempts"])
+        current_rate_per_hour = current_attempts / 2.0
+
+        z_score = (current_rate_per_hour - baseline_mean) / max(baseline_stddev, 1.0)
+
+        if z_score < 3.0:
+            return _get_active_campaigns(conn)
+
+        cur.execute("""
+            SELECT DISTINCT g.asn FROM sessions s
+            JOIN ip_geo_cache g ON g.ip = s.ip
+            WHERE s.starttime >= %s AND s.starttime < %s AND g.asn IS NOT NULL
+        """, (baseline_start, baseline_end))
+        baseline_asns = {r["asn"] for r in cur.fetchall()}
+
+        cur.execute("""
+            SELECT g.asn, g.asn_org, count(DISTINCT s.id) AS sessions,
+                   count(a.id) AS attempts
+            FROM sessions s
+            JOIN ip_geo_cache g ON g.ip = s.ip
+            LEFT JOIN auth a ON a.session = s.id AND a.timestamp >= %s
+            WHERE s.starttime >= %s AND g.asn IS NOT NULL
+            GROUP BY g.asn, g.asn_org
+        """, (detection_window_start, detection_window_start))
+        current_asn_rows = cur.fetchall()
+
+        new_asn_rows = [r for r in current_asn_rows if r["asn"] not in baseline_asns]
+
+        if len(new_asn_rows) < 3:
+            return _get_active_campaigns(conn)
+
+        new_asn_attempts = sum(int(r["attempts"]) for r in new_asn_rows)
+        new_asn_ratio    = new_asn_attempts / max(current_attempts, 1)
+
+        if new_asn_ratio < 0.30:
+            return _get_active_campaigns(conn)
+
+        # Backtrack to find onset time
+        onset_threshold = baseline_mean + 2.0 * baseline_stddev
+        cur.execute("""
+            SELECT date_trunc('minute', a.timestamp) -
+                   (EXTRACT(MINUTE FROM a.timestamp)::int %% 5) * INTERVAL '1 minute' AS bucket,
+                   count(*) AS attempts
+            FROM auth a
+            WHERE a.timestamp >= %s
+            GROUP BY bucket ORDER BY bucket
+        """, (now - timedelta(hours=6),))
+        onset_time = detection_window_start
+        for row in cur.fetchall():
+            if int(row["attempts"]) * 12 > onset_threshold:
+                onset_time = row["bucket"]
+                break
+
+        # Credential pattern
+        cur.execute("""
+            SELECT a.username, a.password, count(*) AS attempts
+            FROM auth a
+            WHERE a.timestamp >= %s AND a.timestamp < %s
+            GROUP BY a.username, a.password ORDER BY attempts DESC LIMIT 10
+        """, (baseline_start, baseline_end))
+        baseline_pairs = {(r["username"], r["password"]) for r in cur.fetchall()}
+
+        new_asn_ids = [r["asn"] for r in new_asn_rows]
+        cur.execute("""
+            SELECT a.username, a.password, count(*) AS attempts
+            FROM auth a
+            JOIN sessions s ON a.session = s.id
+            JOIN ip_geo_cache g ON g.ip = s.ip
+            WHERE a.timestamp >= %s AND g.asn = ANY(%s)
+            GROUP BY a.username, a.password ORDER BY attempts DESC LIMIT 10
+        """, (detection_window_start, new_asn_ids))
+        new_asn_pairs_raw = cur.fetchall()
+
+        top_pairs = [
+            {
+                "username": r["username"],
+                "password": r["password"],
+                "attempts": int(r["attempts"]),
+                "novel":    (r["username"], r["password"]) not in baseline_pairs,
+            }
+            for r in new_asn_pairs_raw
+        ]
+        novel_count = sum(1 for p in top_pairs if p["novel"])
+        credential_pattern = "novel" if novel_count >= 2 else "established"
+
+        new_asns_json = [
+            {"asn": r["asn"], "asn_org": r["asn_org"], "attempts": int(r["attempts"])}
+            for r in sorted(new_asn_rows, key=lambda x: -int(x["attempts"]))[:10]
+        ]
+
+        with conn.cursor() as cur2:
+            cur2.execute("""
+                INSERT INTO campaign_events
+                    (onset_time, z_score, spike_ratio, new_asn_count,
+                     peak_rate_per_hour, baseline_rate_per_hour,
+                     new_asns, top_pairs, credential_pattern)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (onset_time) DO UPDATE SET
+                    z_score              = EXCLUDED.z_score,
+                    spike_ratio          = EXCLUDED.spike_ratio,
+                    new_asn_count        = EXCLUDED.new_asn_count,
+                    peak_rate_per_hour   = EXCLUDED.peak_rate_per_hour,
+                    new_asns             = EXCLUDED.new_asns,
+                    top_pairs            = EXCLUDED.top_pairs,
+                    credential_pattern   = EXCLUDED.credential_pattern
+            """, (
+                onset_time,
+                round(z_score, 2),
+                round(new_asn_ratio, 3),
+                len(new_asn_rows),
+                round(current_rate_per_hour, 2),
+                round(baseline_mean, 2),
+                json.dumps(new_asns_json),
+                json.dumps(top_pairs),
+                credential_pattern,
+            ))
+
+        with conn.cursor() as cur3:
+            cur3.execute("""
+                UPDATE campaign_events SET active = FALSE
+                WHERE onset_time < %s AND active = TRUE
+            """, (now - timedelta(hours=48),))
+
+    return _get_active_campaigns(conn)
+
+
 def count_novel_passwords(window):
     period = WINDOW_TO_WL_PERIOD[window]
     path = Path(WORDLIST_DIR) / period / "novel_passwords.txt"
@@ -217,7 +607,7 @@ def count_novel_passwords(window):
         return None
 
 
-def compute(conn, window):
+def compute(conn, window, campaigns):
     delta = WINDOWS[window]
     now = datetime.now(timezone.utc)
     since = None if delta is None else now - delta
@@ -281,7 +671,7 @@ def compute(conn, window):
         cur.execute(f"""
             SELECT a.username, a.password, count(*) AS attempts
             FROM auth a WHERE {ac}
-            GROUP BY a.username, a.password ORDER BY attempts DESC LIMIT 25
+            GROUP BY a.username, a.password ORDER BY attempts DESC LIMIT 10
         """, ap)
         top_pairs = rows(cur)
 
@@ -319,7 +709,7 @@ def compute(conn, window):
             SELECT c.version AS client_version, count(*) AS connections
             FROM sessions s JOIN clients c ON s.client = c.id
             WHERE {sc}
-            GROUP BY c.version ORDER BY connections DESC LIMIT 20
+            GROUP BY c.version ORDER BY connections DESC LIMIT 10
         """, sp)
         ssh_clients = rows(cur)
 
@@ -411,7 +801,9 @@ def compute(conn, window):
         "auth_log":             auth_log,
         "dl_log":               dl_log,
         "malware_hashes_detail": malware_hashes_detail,
-        "web": _safe_compute_web(conn, window),
+        "web":       _safe_compute_web(conn, window),
+        "geo":       _safe_compute_geo(conn, window),
+        "campaigns": campaigns if window in ("6h", "24h", "7d") else [],
     }
 
 
@@ -433,10 +825,21 @@ def main():
         print(f"[{ts}] ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
+    country_reader, asn_reader = load_geo_readers()
+    enrich_new_ips(conn, country_reader, asn_reader)
+
+    print(f"[{ts}] Running campaign detection...", end=" ", flush=True)
+    try:
+        campaigns = compute_campaigns(conn)
+        print(f"done ({len(campaigns)} active)")
+    except Exception as e:
+        print(f"WARNING: campaign detection failed: {e}", file=sys.stderr)
+        campaigns = []
+
     for window in WINDOWS:
         print(f"[{ts}] Computing {window}...", end=" ", flush=True)
         try:
-            data = compute(conn, window)
+            data = compute(conn, window, campaigns)
             write(window, data)
             print(f"done ({data['overview']['auth_attempts']} auth rows)")
         except Exception as e:
