@@ -1026,6 +1026,10 @@ async function choroplethChart(canvasId, countryData) {
         legend: { display: false },
         tooltip: {
           callbacks: {
+            title(items) {
+              const f = items[0]?.dataset.data[items[0].dataIndex]?.feature;
+              return f?.properties?.name ?? '';
+            },
             label(ctx) {
               const v = ctx.dataset.data[ctx.dataIndex]?.value;
               return v ? ` ${v.toLocaleString()} sessions` : ' no data';
