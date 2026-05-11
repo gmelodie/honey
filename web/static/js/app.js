@@ -576,6 +576,7 @@ async function loadStats() {
 function destroyCharts() {
   Object.values(activeCharts).forEach(c => c.destroy());
   activeCharts = {};
+  $('country-panel').classList.remove('open');
 }
 
 // ── Dashboard render ──────────────────────────────────────────────────────
@@ -821,7 +822,7 @@ function renderAll(d) {
   $('section-geo').hidden = !hasGeo;
 
   if (geo.top_countries && geo.top_countries.length) {
-    choroplethChart('chart-countries', geo.top_countries).then(chart => {
+    choroplethChart('chart-countries', geo.top_countries, geo.country_asns || {}).then(chart => {
       activeCharts['geo-countries'] = chart;
     });
   }
@@ -1031,7 +1032,56 @@ const ISO2_NUM = {
   ZM:894,ZW:716,XK:383,KP:408,SS:728,
 };
 
-async function choroplethChart(canvasId, countryData) {
+// Reverse map: numeric id → ISO alpha-2
+const NUM_ISO = Object.fromEntries(Object.entries(ISO2_NUM).map(([k, v]) => [v, k]));
+
+function countryFlag(iso2) {
+  return [...iso2.toUpperCase()].map(c =>
+    String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+  ).join('');
+}
+
+function openCountryPanel(name, iso2, sessions, rank, totalSessions, asns) {
+  const panel = $('country-panel');
+  $('cp-flag').textContent = iso2 ? countryFlag(iso2) : '🌍';
+  $('cp-name').textContent = name;
+
+  const hasData = sessions > 0;
+  $('cp-data').hidden   = !hasData;
+  $('cp-nodata').hidden =  hasData;
+
+  if (hasData) {
+    $('cp-sessions').textContent = sessions.toLocaleString();
+    $('cp-share').textContent    = totalSessions
+      ? (sessions / totalSessions * 100).toFixed(1) + '%'
+      : '—';
+    $('cp-rank').textContent = '#' + rank;
+    requestAnimationFrame(() => {
+      $('cp-bar').style.width = (sessions / totalSessions * 100).toFixed(1) + '%';
+    });
+
+    const asnEl = $('cp-asns');
+    if (asns && asns.length) {
+      asnEl.innerHTML = asns.map(a =>
+        `<div class="cp-asn-row">
+          <a class="cp-asn-num" href="https://bgp.he.net/AS${a.asn}" target="_blank" rel="noopener">AS${a.asn}</a>
+          <span class="cp-asn-org">${esc(a.asn_org || '—')}</span>
+          <span class="cp-asn-sessions">${a.sessions.toLocaleString()}</span>
+        </div>`
+      ).join('');
+      asnEl.hidden = false;
+      $('cp-asns-heading').hidden = false;
+    } else {
+      asnEl.hidden = true;
+      $('cp-asns-heading').hidden = true;
+    }
+  }
+  panel.classList.add('open');
+}
+
+$('cp-close').addEventListener('click', () => $('country-panel').classList.remove('open'));
+
+async function choroplethChart(canvasId, countryData, countryAsns) {
   const existing = Chart.getChart(canvasId);
   if (existing) existing.destroy();
 
@@ -1044,6 +1094,13 @@ async function choroplethChart(canvasId, countryData) {
     if (n) byNum[n] = r.sessions;
   }
   const maxVal = Math.max(...Object.values(byNum), 1);
+  const totalSessions = Object.values(byNum).reduce((a, b) => a + b, 0);
+
+  // Pre-sorted rank lookup: iso2 → rank
+  const rankByIso = {};
+  [...countryData].sort((a, b) => b.sessions - a.sessions)
+    .forEach((r, i) => { rankByIso[r.country_iso] = i + 1; });
+
   const dark = document.documentElement.dataset.theme === 'dark';
 
   // Gruvbox yellow → orange → red, two-segment gradient
@@ -1090,6 +1147,22 @@ async function choroplethChart(canvasId, countryData) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      onClick(evt, elements) {
+        if (!elements.length) return;
+        const dp  = elements[0].element.$context.raw;
+        const feature = dp?.feature;
+        if (!feature) return;
+        const numId = +feature.id;
+        const iso2  = NUM_ISO[numId] ?? null;
+        const sessions = byNum[numId] ?? 0;
+        const rank     = iso2 ? (rankByIso[iso2] ?? '—') : '—';
+        const asns     = iso2 ? (countryAsns[iso2] || []) : [];
+        openCountryPanel(feature.properties.name, iso2, sessions, rank, totalSessions, asns);
+      },
+      onHover(evt, elements) {
+        const canvas = evt.native?.target;
+        if (canvas) canvas.style.cursor = elements.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { display: false },
         tooltip: {

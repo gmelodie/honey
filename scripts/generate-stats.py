@@ -366,6 +366,35 @@ def compute_geo(conn, window):
             for r in cur.fetchall()
         ]
 
+        # Top 5 ASNs per country (for the top 15 countries)
+        country_asns = {}
+        if top_countries:
+            country_isos = [r["country_iso"] for r in top_countries]
+            cur.execute(f"""
+                SELECT country_iso, asn, asn_org, sessions
+                FROM (
+                    SELECT g.country_iso, g.asn, g.asn_org,
+                           count(*) AS sessions,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY g.country_iso
+                               ORDER BY count(*) DESC
+                           ) AS rn
+                    FROM sessions s
+                    JOIN ip_geo_cache g ON g.ip = s.ip
+                    WHERE {sc} AND g.asn IS NOT NULL
+                      AND g.country_iso = ANY(%s)
+                    GROUP BY g.country_iso, g.asn, g.asn_org
+                ) ranked
+                WHERE rn <= 5
+                ORDER BY country_iso, sessions DESC
+            """, (*sp, country_isos))
+            for r in cur.fetchall():
+                country_asns.setdefault(r["country_iso"], []).append({
+                    "asn":      r["asn"],
+                    "asn_org":  r["asn_org"],
+                    "sessions": int(r["sessions"]),
+                })
+
         new_asns = []
         if since is not None:
             cur.execute("""
@@ -408,6 +437,7 @@ def compute_geo(conn, window):
         "top_asns":      top_asns,
         "new_asns":      new_asns,
         "coverage_pct":  coverage_pct,
+        "country_asns":  country_asns,
     }
 
 

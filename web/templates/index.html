@@ -932,6 +932,46 @@
     honey &nbsp;//&nbsp; protected by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">reCAPTCHA</a> &nbsp;·&nbsp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">privacy</a> &amp; <a href="https://policies.google.com/terms" target="_blank" rel="noopener">terms</a>
   </footer>
 
+<!-- ═══ COUNTRY PANEL ══════════════════════════════════════════════════════ -->
+<div id="country-panel" class="country-panel">
+  <div class="country-panel-bar">
+    <span class="country-panel-label">// country detail</span>
+    <button id="cp-close" class="icon-btn" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="country-panel-body">
+    <div class="cp-hero">
+      <span id="cp-flag" class="cp-flag"></span>
+      <span id="cp-name" class="cp-name"></span>
+    </div>
+    <div id="cp-data">
+      <div class="cp-stats">
+        <div class="cp-stat">
+          <span class="cp-stat-label">sessions</span>
+          <span id="cp-sessions" class="cp-stat-val">—</span>
+        </div>
+        <div class="cp-stat">
+          <span class="cp-stat-label">% of attacks</span>
+          <span id="cp-share" class="cp-stat-val">—</span>
+        </div>
+        <div class="cp-stat">
+          <span class="cp-stat-label">global rank</span>
+          <span id="cp-rank" class="cp-stat-val">—</span>
+        </div>
+      </div>
+      <div id="cp-bar-wrap" class="cp-bar-wrap">
+        <div id="cp-bar" class="cp-bar"></div>
+      </div>
+      <p id="cp-asns-heading" class="cp-asns-heading" hidden>top ASNs</p>
+      <div id="cp-asns" class="cp-asns" hidden></div>
+    </div>
+    <p id="cp-nodata" class="cp-nodata" hidden>no attack data recorded for this country in the selected window.</p>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>window.__RC_SITE_KEY__ = {{ recaptcha_site_key | tojson }};</script>
