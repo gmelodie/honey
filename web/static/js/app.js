@@ -1046,6 +1046,32 @@ async function choroplethChart(canvasId, countryData) {
   const maxVal = Math.max(...Object.values(byNum), 1);
   const dark = document.documentElement.dataset.theme === 'dark';
 
+  // Gruvbox yellow → orange → red, two-segment gradient
+  const STOPS = dark
+    ? [[0xFA,0xBD,0x2F],[0xFE,0x80,0x19],[0xFB,0x49,0x34]]
+    : [[0xB5,0x76,0x14],[0xAF,0x3A,0x03],[0x9D,0x00,0x06]];
+
+  function heatColor(v) {
+    if (!v) return dark ? '#1d2021' : '#ddd8c4';
+    const t   = Math.sqrt(v / maxVal);           // sqrt scale — small values still show
+    const seg = Math.min(Math.floor(t * 2), 1);  // 0 or 1
+    const f   = t * 2 - seg;
+    const lo  = STOPS[seg], hi = STOPS[seg + 1];
+    return `rgb(${Math.round(lo[0]+f*(hi[0]-lo[0]))},${Math.round(lo[1]+f*(hi[1]-lo[1]))},${Math.round(lo[2]+f*(hi[2]-lo[2]))})`;
+  }
+
+  // Gradient legend strip
+  const legendEl = $('countries-legend');
+  if (legendEl) {
+    const grad = dark
+      ? 'linear-gradient(to right,#FABD2F,#FE8019,#FB4934)'
+      : 'linear-gradient(to right,#B57614,#AF3A03,#9D0006)';
+    legendEl.innerHTML =
+      `<span>0</span>` +
+      `<div style="flex:1;height:6px;background:${grad};border-radius:3px;opacity:.85"></div>` +
+      `<span>${maxVal.toLocaleString()}</span>`;
+  }
+
   return new Chart($(canvasId), {
     type: 'choropleth',
     data: {
@@ -1053,13 +1079,12 @@ async function choroplethChart(canvasId, countryData) {
       datasets: [{
         data: features.map(f => ({ feature: f, value: byNum[+f.id] ?? 0 })),
         backgroundColor(ctx) {
-          const v = ctx.dataset.data[ctx.dataIndex]?.value ?? 0;
-          if (!v) return dark ? '#1e2025' : '#e8eaed';
-          const a = (0.18 + 0.82 * (v / maxVal)).toFixed(2);
-          return `rgba(220,50,47,${a})`;
+          return heatColor(ctx.dataset.data[ctx.dataIndex]?.value ?? 0);
         },
-        borderColor: dark ? '#2e3138' : '#c8ccd2',
-        borderWidth: 0.4,
+        borderColor: dark ? '#3a3a3a' : '#b8b0a0',
+        borderWidth: 0.6,
+        hoverBorderColor: dark ? '#FABD2F' : '#B57614',
+        hoverBorderWidth: 1.2,
       }],
     },
     options: {
@@ -1068,6 +1093,14 @@ async function choroplethChart(canvasId, countryData) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: dark ? '#3C3836' : '#F2E5BC',
+          borderColor:      dark ? '#665C54' : '#D5C4A1',
+          borderWidth: 1,
+          titleColor: dark ? '#EBDBB2' : '#3C3836',
+          bodyColor:  dark ? '#A89984' : '#665C54',
+          titleFont:  { family: "'JetBrains Mono', monospace", size: 11, weight: '700' },
+          bodyFont:   { family: "'JetBrains Mono', monospace", size: 11 },
+          padding: 10,
           callbacks: {
             title(items) {
               const f = items[0]?.dataset.data[items[0].dataIndex]?.feature;
@@ -1075,7 +1108,7 @@ async function choroplethChart(canvasId, countryData) {
             },
             label(ctx) {
               const v = ctx.dataset.data[ctx.dataIndex]?.value;
-              return v ? ` ${v.toLocaleString()} sessions` : ' no data';
+              return v ? `  ${v.toLocaleString()} sessions` : '  no data';
             },
           },
         },
