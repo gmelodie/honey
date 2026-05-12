@@ -2,7 +2,7 @@ name: autopot
 
 services:
   postgres:
-    image: postgres:16
+    image: postgres:17
     container_name: postgres
     restart: unless-stopped
     network_mode: host
@@ -23,7 +23,7 @@ services:
       retries: 10
 
   postgres-init:
-    image: postgres:16
+    image: postgres:17
     network_mode: host
     env_file: .env
     depends_on:
