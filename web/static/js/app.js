@@ -650,17 +650,21 @@ function renderAll(d) {
   }
 
   {
-    const dowLabels = t('dow');
-    const dowCounts = new Array(7).fill(0);
-    d.by_dow.forEach(r => { dowCounts[r.dow] = Number(r.attempts); });
-    const dowTotal = dowCounts.reduce((a, b) => a + b, 0);
-    activeCharts['dow'] = areaChart(
-      'chart-dow',
-      dowLabels,
-      dowCounts,
-      '--c-orange',
-      i => openTimePanel('dow', i, dowCounts[i], dowTotal, d),
-    );
+    const showDow = ['7d', '30d', 'all'].includes(currentWindow);
+    $('card-dow').hidden = !showDow;
+    if (showDow) {
+      const dowLabels = t('dow');
+      const dowCounts = new Array(7).fill(0);
+      d.by_dow.forEach(r => { dowCounts[r.dow] = Number(r.attempts); });
+      const dowTotal = dowCounts.reduce((a, b) => a + b, 0);
+      activeCharts['dow'] = areaChart(
+        'chart-dow',
+        dowLabels,
+        dowCounts,
+        '--c-orange',
+        i => openTimePanel('dow', i, dowCounts[i], dowTotal, d),
+      );
+    }
   }
 
   renderHBar('chart-usernames', d.top_usernames.map(r => ({
@@ -1332,6 +1336,16 @@ function openTimePanel(type, idx, count, total, data) {
 $('tp-close').addEventListener('click', () => {
   $('time-panel').classList.remove('open');
   document.querySelectorAll('.vbar-col.active').forEach(c => c.classList.remove('active'));
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('country-panel').classList.contains('open')) {
+    $('country-panel').classList.remove('open');
+  } else if ($('time-panel').classList.contains('open')) {
+    $('time-panel').classList.remove('open');
+    document.querySelectorAll('.vbar-col.active').forEach(c => c.classList.remove('active'));
+  }
 });
 
 // ── Table filler ──────────────────────────────────────────────────────────
