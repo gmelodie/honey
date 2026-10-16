@@ -1,4 +1,4 @@
-name: autopot
+name: honey
 
 services:
   postgres:
@@ -29,8 +29,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
     entrypoint: ["psql"]
-    command: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:${POSTGRES_PORT}/${POSTGRES_DB} -f /schema.sql"
+    command: ["-h", "127.0.0.1", "-p", "${POSTGRES_PORT}", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}", "-v", "ON_ERROR_STOP=1", "-f", "/schema.sql"]
     volumes:
       - ./postgres/schema.sql:/schema.sql:ro
     restart: "no"
@@ -49,7 +51,7 @@ services:
       - ./cowrie/var/log/cowrie:/cowrie/cowrie-git/var/log/cowrie
       - ./cowrie/var/lib/cowrie:/cowrie/cowrie-git/var/lib/cowrie
 
-  # GeoIP database downloader — runs once, skips if databases already present
+  # GeoIP database downloader: runs once, skips if the databases exist
   geoip-init:
     build:
       context: ./scripts
@@ -62,11 +64,10 @@ services:
       - geoip:/geoip
     entrypoint: ["/bin/sh", "/geoip-init.sh"]
 
-  # Stats generator — runs on startup then every 5 minutes
+  # Stats generator: runs on startup, then every 5 minutes
   stats-gen:
-    build:
-      context: ./scripts
-      dockerfile: Dockerfile.stats-gen
+    build: .
+    image: honey:local
     restart: unless-stopped
     network_mode: host
     env_file: .env
@@ -81,41 +82,36 @@ services:
       - GEOIP_COUNTRY_DB=/geoip/country.mmdb
       - GEOIP_ASN_DB=/geoip/asn.mmdb
     volumes:
-      - ./scripts/generate-stats.py:/generate-stats.py:ro
-      - ./scripts/stats-gen.sh:/stats-gen.sh:ro
       - stats:/stats
       - wordlists:/wordlists:ro
       - geoip:/geoip:ro
-    entrypoint: ["/bin/sh", "/stats-gen.sh"]
+    entrypoint: ["/usr/local/bin/stats-gen.sh"]
     depends_on:
       postgres-init:
         condition: service_completed_successfully
       geoip-init:
         condition: service_completed_successfully
 
-  # Bloom filter builder — runs once on startup, skips if filter already exists
+  # Bloom filter builder: runs once, skips if a current-format filter exists
   bloom-init:
-    build:
-      context: ./scripts
-      dockerfile: Dockerfile.bloom-init
+    build: .
+    image: honey:local
     restart: "no"
     network_mode: host
     environment:
       - BLOOM_DIR=/bloom
-      # Space-separated URLs; downloaded one at a time to minimise disk usage.
+      # Space-separated URLs, streamed one at a time and never written to disk.
       # Lists: xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, darkweb 2017 top 10 k.
       # Override in .env to customise.
       - BLOOM_WORDLIST_URLS=${BLOOM_WORDLIST_URLS:-https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/xato-net-10-million-passwords-1000000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Pwdb_top-1000000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/probable-v2_top-12000.txt https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/darkweb2017_top-10000.txt}
     volumes:
-      - ./scripts/bloom-init.py:/bloom-init.py:ro
       - bloom:/bloom
-    entrypoint: ["/usr/local/bin/python", "/bloom-init.py"]
+    entrypoint: ["honey-bloom"]
 
-  # Wordlist generator — runs on startup then every 6 hours via cron
+  # Wordlist generator: runs on startup, then every 6 hours
   wordlist-gen:
-    build:
-      context: ./scripts
-      dockerfile: Dockerfile.wordlist-gen
+    build: .
+    image: honey:local
     restart: unless-stopped
     network_mode: host
     env_file: .env
@@ -128,42 +124,35 @@ services:
       - WORDLIST_DIR=/wordlists
       - BLOOM_DIR=/bloom
     volumes:
-      - ./scripts/generate-wordlists.py:/generate-wordlists.py:ro
-      - ./scripts/wordlist-gen.sh:/wordlist-gen.sh:ro
       - wordlists:/wordlists
       - bloom:/bloom
-    entrypoint: ["/bin/sh", "/wordlist-gen.sh"]
+    entrypoint: ["/usr/local/bin/wordlist-gen.sh"]
     depends_on:
       bloom-init:
         condition: service_completed_successfully
       postgres-init:
         condition: service_completed_successfully
 
-  # Stats dashboard — cowrie attack data from PostgreSQL, behind reCAPTCHA
+  # Stats dashboard: serves the files from stats-gen and wordlist-gen
   web:
-    build: ./web
+    build: .
+    image: honey:local
     container_name: web
+    user: nobody
+    entrypoint: ["honey-web"]
     restart: unless-stopped
     network_mode: host
-    env_file: .env
     environment:
-      - POSTGRES_HOST=${POSTGRES_HOST:-127.0.0.1}
-      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - RECAPTCHA_MIN_SCORE=${RECAPTCHA_MIN_SCORE:-0.5}
       - WORDLIST_DIR=/wordlists
       - STATS_DIR=/stats
     volumes:
-      - wordlists:/wordlists
-      - stats:/stats
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - wordlists:/wordlists:ro
+      - stats:/stats:ro
 
-  # Nginx — routes port 80/443 by Host header
+  # Nginx: routes ports 80 and 443 by Host header
   nginx:
     build: ./nginx
     container_name: nginx
@@ -178,9 +167,9 @@ services:
     depends_on:
       - web
 
-  # Certbot — automatic certificate renewal (runs every 12 h)
+  # Certbot: renews certificates every 12 hours
   certbot:
-    image: certbot/certbot
+    image: certbot/certbot:v5.8.0@sha256:f70ad0adbb7e117f0fe42a63c553f28ea451edabc0148757b6efcd9735acaa20
     network_mode: host
     volumes:
       - ./letsencrypt:/etc/letsencrypt

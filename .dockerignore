@@ -1,0 +1,5 @@
+target
+.git
+cowrie/var
+letsencrypt
+certbot
