@@ -26,8 +26,8 @@ docker run --rm \
     --no-eff-email \
     -d "${TARGET_HOST}"
 
-echo "[init] Certificate obtained. Reloading nginx…"
-docker compose exec nginx nginx -s reload
+echo "[init] Certificate obtained. Restarting nginx…"
+docker compose restart nginx
 
 echo "[init] Done! Certificates are at ${CERT_DIR}/live/${TARGET_HOST}/"
 echo "       Set up a cron job to run: docker compose run --rm certbot renew"
