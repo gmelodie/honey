@@ -34,18 +34,6 @@ if [ ! -f "/etc/nginx/ssl/catchall.crt" ]; then
         -subj   "/CN=localhost" 2>/dev/null
 fi
 
-# HONEY_ADMIN_PASSWORD_HASH must be in htpasswd format (use `openssl passwd -apr1`)
-if [ -n "${HONEY_ADMIN_USER}" ] && [ -n "${HONEY_ADMIN_PASSWORD_HASH}" ]; then
-    echo "${HONEY_ADMIN_USER}:${HONEY_ADMIN_PASSWORD_HASH}" > /etc/nginx/admin.htpasswd
-    echo "[nginx] /admin/ basic-auth configured for user '${HONEY_ADMIN_USER}'"
-else
-    # No password hash can match this line, so /admin/ rejects everyone
-    echo "*:*locked-by-default" > /etc/nginx/admin.htpasswd
-    echo "[nginx] HONEY_ADMIN_USER not set — /admin/ will reject all requests" >&2
-fi
-chown root:nginx /etc/nginx/admin.htpasswd
-chmod 640 /etc/nginx/admin.htpasswd
-
 render_conf
 
 # Re-render so a first LE cert or a renewed one from the certbot container is picked up

@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: "1.95.0"
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: cowrie
+          POSTGRES_PASSWORD: cowrie
+          POSTGRES_DB: cowrie_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cowrie" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      HONEY_TEST_PG: host=127.0.0.1 port=5432 user=cowrie password=cowrie dbname=cowrie_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal -c clippy,rustfmt
+          rustup default "$RUST_TOOLCHAIN"
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build --tag honey:ci .
+      - name: binaries run in the runtime image
+        run: |
+          set +e
+          docker run --rm --entrypoint honey-import honey:ci
+          test $? -eq 2
+      - run: docker run --rm --entrypoint sh honey:ci -c 'test -x /usr/local/bin/stats-gen.sh && test -x /usr/local/bin/wordlist-gen.sh'
+
+  shell:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: shellcheck scripts/*.sh nginx/*.sh postgres/*.sh

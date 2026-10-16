@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/style.css" />
   <script>window.onRecaptchaLoad = function() { window.__rcFired = true; };</script>
-  <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render={{ recaptcha_site_key or 'explicit' }}" async defer></script>
+  <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render={{RECAPTCHA_RENDER}}" async defer></script>
 </head>
 <body>
 
@@ -989,7 +989,7 @@
 
 </div><!-- /app -->
 
-<script>window.__RC_SITE_KEY__ = {{ recaptcha_site_key | tojson }};</script>
+<script>window.__RC_SITE_KEY__ = {{RECAPTCHA_SITE_KEY_JSON}};</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-geo@4/build/index.umd.min.js"></script>

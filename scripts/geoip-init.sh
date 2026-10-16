@@ -17,8 +17,8 @@ MONTH=$(date +%Y-%m)
 PREV_MONTH=$(date -d "1 month ago" +%Y-%m 2>/dev/null || date -v-1m +%Y-%m 2>/dev/null)
 
 download_db() {
-    local name="$1"   # country or asn
-    local dest="$2"   # destination path without .gz
+    name="$1"   # country or asn
+    dest="$2"   # destination path without .gz
 
     for month in "$MONTH" "$PREV_MONTH"; do
         [ -z "$month" ] && continue

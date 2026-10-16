@@ -1,12 +1,11 @@
 #!/bin/bash
 set -e
 
-# Start postgres using the official entrypoint in the background
-docker-entrypoint.sh postgres &
+# Host networking: without listen_addresses the server answers on every public interface.
+docker-entrypoint.sh postgres -c listen_addresses=127.0.0.1 &
 PG_PID=$!
 
-# Forward shutdown signals so postgres exits cleanly
-trap "kill -TERM $PG_PID" SIGTERM SIGINT
+trap 'kill -TERM "$PG_PID"; wait "$PG_PID"; exit' TERM INT
 
 # Wait for the real TCP server — the temp init server only binds the Unix socket,
 # so this only succeeds once initialization is complete and the permanent server is up.
@@ -15,8 +14,9 @@ until pg_isready -U "$POSTGRES_USER" -h 127.0.0.1 -q 2>/dev/null; do
 done
 
 # Sync the password from the environment on every start.
-psql "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1/${POSTGRES_DB}" \
-    -c "ALTER ROLE \"${POSTGRES_USER}\" WITH PASSWORD '${POSTGRES_PASSWORD}';" \
-    >/dev/null
+PGPASSWORD="$POSTGRES_PASSWORD" psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q \
+    -v user="$POSTGRES_USER" -v pw="$POSTGRES_PASSWORD" <<'SQL'
+ALTER ROLE :"user" WITH PASSWORD :'pw';
+SQL
 
-wait $PG_PID
+wait "$PG_PID"
