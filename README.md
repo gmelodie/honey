@@ -2,7 +2,7 @@
 
 SSH/Telnet honeypot that captures attacker sessions and serves them in a live web dashboard with downloadable credential wordlists.
 
-**Stack:** Cowrie → PostgreSQL → Flask → Nginx (SSL + reCAPTCHA)
+**Stack:** Cowrie → PostgreSQL → Rust (axum) → Nginx (SSL + reCAPTCHA)
 
 Cowrie listens on 2222/2223 (redirected from 22/23 via iptables). Sessions, logins, commands, and downloads go to PostgreSQL. Stats and wordlists are precomputed by background workers and served instantly by the web server.
 
@@ -56,7 +56,7 @@ RECAPTCHA_SITE_KEY=
 RECAPTCHA_SECRET_KEY=
 ```
 
-Get reCAPTCHA keys at [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) — add your domain, choose v2 Checkbox, paste both keys. Leave blank to disable the gate.
+Get reCAPTCHA keys at [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin): add your domain, choose v3, and paste both keys. Leave blank to disable the gate.
 
 ### 4. Start the stack
 
@@ -105,12 +105,12 @@ Open `https://honey.example.com`.
 If you have existing Cowrie JSON logs, import them into the database:
 
 ```bash
-pip install psycopg2-binary python-dotenv
-python3 scripts/import-cowrie-json.py /path/to/cowrie.json*
+cargo run --release --bin honey-import -- /path/to/cowrie.json*
 ```
 
-- Reads DB credentials from `.env` automatically
-- Safe to re-run on overlapping files — duplicates are skipped
+- Reads DB credentials from the environment, then from `.env` in the current directory
+- Each file imports in one transaction
+- Re-runs skip known sessions, sensors and clients, but insert auth, input, download and fingerprint rows again
 - After import, `stats-gen` and `wordlist-gen` will pick up the new data on their next run
 
 ---
@@ -118,6 +118,6 @@ python3 scripts/import-cowrie-json.py /path/to/cowrie.json*
 ## Notes
 
 - All containers use `network_mode: host` and communicate via `127.0.0.1`.
-- `.env` is gitignored — never commit it.
+- `.env` is gitignored. Never commit it.
 - Dashboard stats refresh every 5 minutes; wordlists every 6 hours.
-- `setup-port-redirect.sh` is idempotent — safe to re-run.
+- `setup-port-redirect.sh` is idempotent, so you can run it again.

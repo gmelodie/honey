@@ -2,7 +2,7 @@
 # Obtain Let's Encrypt certificates for TARGET_HOST.
 # Run once before (or just after) starting the stack for the first time.
 #
-# Usage:  TARGET_HOST=honey.gmelodie.com CERTBOT_EMAIL=you@example.com ./scripts/init-letsencrypt.sh
+# Usage:  TARGET_HOST=honey.example.com CERTBOT_EMAIL=you@example.com ./scripts/init-letsencrypt.sh
 set -euo pipefail
 
 : "${TARGET_HOST:?Set TARGET_HOST to your public hostname}"
@@ -29,5 +29,5 @@ docker run --rm \
 echo "[init] Certificate obtained. Restarting nginx…"
 docker compose restart nginx
 
-echo "[init] Done! Certificates are at ${CERT_DIR}/live/${TARGET_HOST}/"
-echo "       Set up a cron job to run: docker compose run --rm certbot renew"
+echo "[init] Done. Certificates are at ${CERT_DIR}/live/${TARGET_HOST}/"
+echo "       The certbot service renews them every 12 hours."

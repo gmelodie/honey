@@ -29,6 +29,11 @@ class ReconnectingPostgreSQLConnectionPool(adbapi.ConnectionPool):
             return super()._runInteraction(interaction, *args, **kw)
 
 
+def clean(value):
+    """PostgreSQL rejects NUL bytes in text, and attackers send them."""
+    return value.replace("\x00", "") if isinstance(value, str) else value
+
+
 class Output(cowrie.core.output.Output):
     debug: bool = False
 
@@ -47,7 +52,7 @@ class Output(cowrie.core.output.Output):
                 cp_max=1,
             )
         except Exception as e:
-            log.msg(f"output_postgresql: Error {e.args[0]}: {e.args[1]}")
+            log.msg(f"output_postgresql: Error {e!r}")
 
     def stop(self):
         self.db.close()
@@ -56,6 +61,7 @@ class Output(cowrie.core.output.Output):
         log.msg(f"output_postgresql: PostgreSQL Error: {error.value.args!r}")
 
     def simpleQuery(self, sql, args):
+        args = tuple(clean(a) for a in args)
         if sql.startswith("INSERT") or sql.startswith("UPDATE") or sql.startswith("DELETE"):
             sql += " RETURNING id"
         if self.debug:
@@ -73,7 +79,6 @@ class Output(cowrie.core.output.Output):
             if r:
                 sensorid = r[0][0]
             else:
-                # Fixed: use RETURNING id so runQuery gets a result back
                 r = yield self.db.runQuery(
                     "INSERT INTO sensors (ip) VALUES (%s) RETURNING id",
                     (self.sensor,),
@@ -95,9 +100,6 @@ class Output(cowrie.core.output.Output):
                 "INSERT INTO auth (session, success, username, password, timestamp) VALUES (%s, %s, %s, %s, TO_TIMESTAMP(%s))",
                 (event["session"], False, event["username"], event.get("password", ""), event["time"]),
             )
-
-        elif event["eventid"] == "cowrie.session.params":
-            pass  # params table not in schema
 
         elif event["eventid"] == "cowrie.command.input":
             self.simpleQuery(
@@ -136,17 +138,17 @@ class Output(cowrie.core.output.Output):
             )
 
         elif event["eventid"] == "cowrie.client.version":
+            version = clean(event["version"])[:50]
             r = yield self.db.runQuery(
                 "SELECT id FROM clients WHERE version = %s",
-                (event["version"],),
+                (version,),
             )
             if r:
                 clientid = int(r[0][0])
             else:
-                # Fixed: use RETURNING id so runQuery gets a result back
                 r = yield self.db.runQuery(
                     "INSERT INTO clients (version) VALUES (%s) RETURNING id",
-                    (event["version"],),
+                    (version,),
                 )
                 clientid = int(r[0][0])
             self.simpleQuery(
@@ -157,7 +159,7 @@ class Output(cowrie.core.output.Output):
         elif event["eventid"] == "cowrie.client.size":
             self.simpleQuery(
                 "UPDATE sessions SET termsize = %s WHERE id = %s",
-                ("{}x{}".format(event["width"], event["height"]), event["session"]),
+                ("{}x{}".format(event["width"], event["height"])[:7], event["session"]),
             )
 
         elif event["eventid"] == "cowrie.session.closed":

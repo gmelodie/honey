@@ -1,9 +1,7 @@
 #!/bin/sh
-set -e
-python /generate-wordlists.py
 trap exit TERM
 while :; do
+    honey-wordlists
     sleep 6h &
     wait $!
-    python /generate-wordlists.py
 done
