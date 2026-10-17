@@ -27,8 +27,8 @@ pub fn noise_floor(rows: &[TrendRow]) -> i64 {
 /// Compares each password's share of its period, so a change in total volume moves no password.
 pub fn classify(rows: Vec<TrendRow>) -> Trends {
     let min_count = noise_floor(&rows);
-    let recent_total = i128::from(rows.iter().map(|r| r.recent).sum::<i64>());
-    let baseline_total = i128::from(rows.iter().map(|r| r.baseline).sum::<i64>());
+    let recent_total = i128::from(rows.iter().map(|r| r.recent).sum::<i64>().max(1));
+    let baseline_total = i128::from(rows.iter().map(|r| r.baseline).sum::<i64>().max(1));
     let recent_scaled = |r: &TrendRow| i128::from(r.recent) * baseline_total;
     let baseline_scaled = |r: &TrendRow| i128::from(r.baseline) * recent_total;
 
@@ -132,14 +132,54 @@ mod tests {
     }
 
     #[test]
-    fn traffic_growth_still_finds_dying_by_share() {
-        let t = classify(vec![
-            row("grew", 90, 10),
-            row("shrank", 20, 10),
-            row("held", 55, 10),
-        ]);
-        assert_eq!(t.trending, ["grew"]);
-        assert_eq!(t.dying, ["shrank"]);
+    fn classify_by_share_of_period_total() {
+        type Case = (
+            &'static str,
+            Vec<(&'static str, i64, i64)>,
+            Vec<&'static str>,
+            Vec<&'static str>,
+        );
+        let cases: Vec<Case> = vec![
+            (
+                "total_traffic_grows",
+                vec![("grew", 90, 10), ("shrank", 20, 10), ("held", 55, 10)],
+                vec!["grew"],
+                vec!["shrank"],
+            ),
+            (
+                "baseline_total_zero",
+                vec![("a", 5, 0), ("b", 3, 0)],
+                vec!["a", "b"],
+                vec![],
+            ),
+            (
+                "recent_total_zero",
+                vec![("a", 0, 5), ("b", 0, 3)],
+                vec![],
+                vec!["a", "b"],
+            ),
+            (
+                "equal_shares",
+                vec![("a", 10, 20), ("b", 20, 40)],
+                vec![],
+                vec![],
+            ),
+            ("single_row_equal_share", vec![("a", 9, 4)], vec![], vec![]),
+        ];
+        for (name, rows, trending, dying) in cases {
+            let t = classify(rows.into_iter().map(|(p, r, b)| row(p, r, b)).collect());
+            assert_eq!(t.trending, trending, "{name}: trending");
+            assert_eq!(t.dying, dying, "{name}: dying");
+        }
+    }
+
+    #[test]
+    fn dying_sorted_by_share_drop_not_count_drop_when_totals_differ() {
+        // x drops more in count (10 vs 8) but y drops more in share (0.417 vs 0.238).
+        let t = classify(vec![row("x", 0, 10), row("y", 20, 28), row("z", 60, 4)]);
+        assert_eq!(t.min_count, 6);
+        assert_eq!(t.trending, ["z"]);
+        assert_eq!(t.dying, ["y", "x"]);
     }
 
     #[test]

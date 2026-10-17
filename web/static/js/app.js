@@ -153,8 +153,8 @@ const STRINGS = {
     'wl.preview.dying_passwords':    'preview — top 5 fastest declining',
     'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
     'wl.preview.rules':          'preview — top observed mutations',
-    'wl.trending_passwords.tip': 'Passwords with a growing share of attempts compared to the previous period — sorted by relative growth rate.',
-    'wl.dying_passwords.tip':    'Passwords with a shrinking share of attempts compared to the previous period — sorted by drop in share.',
+    'wl.trending_passwords.tip': 'Passwords with a growing share of attempts compared to the previous period. Sorted by relative growth rate.',
+    'wl.dying_passwords.tip':    'Passwords with a shrinking share of attempts compared to the previous period. Sorted by drop in share.',
     'wl.novel_passwords.tip': 'Passwords not found in common reference wordlists — filtered against xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, and darkweb 2017 top 10 k.',
     'wl.empty':         'no data collected yet',
 
@@ -315,8 +315,8 @@ const STRINGS = {
     'wl.preview.dying_passwords':    'prévia — top 5 declinando mais rápido',
     'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
     'wl.preview.rules':          'prévia — mutações mais observadas',
-    'wl.trending_passwords.tip': 'Senhas com participação crescente nas tentativas em comparação ao período anterior — ordenadas pela taxa de crescimento relativo.',
-    'wl.dying_passwords.tip':    'Senhas com participação decrescente nas tentativas em comparação ao período anterior — ordenadas pela queda na participação.',
+    'wl.trending_passwords.tip': 'Senhas com participação crescente nas tentativas em comparação ao período anterior. Ordenadas pela taxa de crescimento relativo.',
+    'wl.dying_passwords.tip':    'Senhas com participação decrescente nas tentativas em comparação ao período anterior. Ordenadas pela queda na participação.',
     'wl.novel_passwords.tip': 'Senhas não encontradas em listas de referência comuns — filtradas contra xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k e darkweb 2017 top 10 k.',
     'wl.empty':         'nenhum dado coletado ainda',
 
@@ -953,22 +953,6 @@ function renderAll(d) {
   }
 }
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return;
-  } catch {}
-
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;opacity:0';
-  document.body.appendChild(ta);
-  ta.select();
-  const ok = document.execCommand('copy');
-  ta.remove();
-  if (!ok) throw new Error('copy rejected');
-}
-
 function bindCampaignActions(campaigns) {
   const byId = {};
   campaigns.forEach(c => { byId[c.id] = c; });
@@ -995,7 +979,7 @@ function bindCampaignActions(campaigns) {
     copyBtn?.addEventListener('click', async () => {
       const lines = (c.top_pairs || []).map(p => `${p.username}:${p.password}`).join('\n');
       try {
-        await copyText(lines);
+        await navigator.clipboard.writeText(lines);
         copyBtn.textContent = t('campaign.act.copied');
         setTimeout(() => { copyBtn.textContent = t('campaign.act.copy'); }, 1500);
       } catch {
@@ -1195,7 +1179,7 @@ async function choroplethChart(canvasId, countryData, countryAsns) {
 
   const topology = await _fetchWorldAtlas();
   const features = topojson.feature(topology, topology.objects.countries).features
-    .filter(f => f.id !== '010');
+    .filter(f => f.properties.name !== 'Antarctica');
 
   const byNum = {};
   for (const r of countryData) {
