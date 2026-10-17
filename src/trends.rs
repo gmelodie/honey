@@ -24,20 +24,26 @@ pub fn noise_floor(rows: &[TrendRow]) -> i64 {
     floor.max(2)
 }
 
+/// Compares each password's share of its period, so a change in total volume moves no password.
 pub fn classify(rows: Vec<TrendRow>) -> Trends {
     let min_count = noise_floor(&rows);
+    let recent_total = i128::from(rows.iter().map(|r| r.recent).sum::<i64>());
+    let baseline_total = i128::from(rows.iter().map(|r| r.baseline).sum::<i64>());
+    let recent_scaled = |r: &TrendRow| i128::from(r.recent) * baseline_total;
+    let baseline_scaled = |r: &TrendRow| i128::from(r.baseline) * recent_total;
+
     let (mut trending, mut dying) = (Vec::new(), Vec::new());
     for r in rows {
-        if r.recent >= min_count && r.recent > r.baseline {
+        if r.recent >= min_count && recent_scaled(&r) > baseline_scaled(&r) {
             trending.push(r);
-        } else if r.baseline >= min_count && r.baseline > r.recent {
+        } else if r.baseline >= min_count && baseline_scaled(&r) > recent_scaled(&r) {
             dying.push(r);
         }
     }
 
     let growth = |r: &TrendRow| r.recent as f64 / (r.baseline as f64).max(0.1);
     trending.sort_by(|a, b| growth(b).total_cmp(&growth(a)));
-    dying.sort_by_key(|r| std::cmp::Reverse(r.baseline - r.recent));
+    dying.sort_by_key(|r| std::cmp::Reverse(baseline_scaled(r) - recent_scaled(r)));
 
     Trends {
         trending: trending.into_iter().map(|r| r.password).collect(),
@@ -123,6 +129,17 @@ mod tests {
         assert_eq!(t.min_count, 3);
         assert_eq!(t.trending, ["new", "b1", "tie1", "tie2", "slow"]);
         assert_eq!(t.dying, ["d_big", "d_small", "d_tie", "d_mid"]);
+    }
+
+    #[test]
+    fn traffic_growth_still_finds_dying_by_share() {
+        let t = classify(vec![
+            row("grew", 90, 10),
+            row("shrank", 20, 10),
+            row("held", 55, 10),
+        ]);
+        assert_eq!(t.trending, ["grew"]);
+        assert_eq!(t.dying, ["shrank"]);
     }
 
     #[test]

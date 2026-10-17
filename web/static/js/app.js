@@ -47,6 +47,13 @@ const STRINGS = {
     'campaign.detail.asns':     'ASN sources driving this campaign',
     'campaign.novel.yes':       'novel',
     'campaign.novel.no':        'seen before',
+    'campaign.title':           'CAMPAIGN',
+    'campaign.stat.onset':      'Onset',
+    'campaign.stat.z':          'Z-Score',
+    'campaign.stat.peak':       'Peak/hr',
+    'campaign.stat.baseline':   'Baseline/hr',
+    'campaign.stat.new_asns':   'New ASNs',
+    'campaign.stat.new_asn_traffic': 'New-ASN Traffic',
     'th.novel':                 'Novel?',
 
     'section.overview':        'Overview',
@@ -146,8 +153,8 @@ const STRINGS = {
     'wl.preview.dying_passwords':    'preview — top 5 fastest declining',
     'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
     'wl.preview.rules':          'preview — top observed mutations',
-    'wl.trending_passwords.tip': 'Passwords growing in attack frequency compared to the previous period — sorted by relative growth rate.',
-    'wl.dying_passwords.tip':    'Passwords declining in attack frequency compared to the previous period — sorted by absolute drop in usage.',
+    'wl.trending_passwords.tip': 'Passwords with a growing share of attempts compared to the previous period — sorted by relative growth rate.',
+    'wl.dying_passwords.tip':    'Passwords with a shrinking share of attempts compared to the previous period — sorted by drop in share.',
     'wl.novel_passwords.tip': 'Passwords not found in common reference wordlists — filtered against xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, and darkweb 2017 top 10 k.',
     'wl.empty':         'no data collected yet',
 
@@ -202,6 +209,13 @@ const STRINGS = {
     'campaign.detail.asns':     'Origens ASN por trás desta campanha',
     'campaign.novel.yes':       'nova',
     'campaign.novel.no':        'já vista',
+    'campaign.title':           'CAMPANHA',
+    'campaign.stat.onset':      'Início',
+    'campaign.stat.z':          'Z-Score',
+    'campaign.stat.peak':       'Pico/h',
+    'campaign.stat.baseline':   'Base/h',
+    'campaign.stat.new_asns':   'ASNs Novos',
+    'campaign.stat.new_asn_traffic': 'Tráfego de ASNs Novos',
     'th.novel':                 'Nova?',
 
     'section.overview':        'Visão Geral',
@@ -301,8 +315,8 @@ const STRINGS = {
     'wl.preview.dying_passwords':    'prévia — top 5 declinando mais rápido',
     'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
     'wl.preview.rules':          'prévia — mutações mais observadas',
-    'wl.trending_passwords.tip': 'Senhas com frequência de ataque crescente em comparação ao período anterior — ordenadas pela taxa de crescimento relativo.',
-    'wl.dying_passwords.tip':    'Senhas com frequência de ataque declinante em comparação ao período anterior — ordenadas pela queda absoluta no uso.',
+    'wl.trending_passwords.tip': 'Senhas com participação crescente nas tentativas em comparação ao período anterior — ordenadas pela taxa de crescimento relativo.',
+    'wl.dying_passwords.tip':    'Senhas com participação decrescente nas tentativas em comparação ao período anterior — ordenadas pela queda na participação.',
     'wl.novel_passwords.tip': 'Senhas não encontradas em listas de referência comuns — filtradas contra xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k e darkweb 2017 top 10 k.',
     'wl.empty':         'nenhum dado coletado ainda',
 
@@ -345,7 +359,7 @@ function applyLang(lang) {
   });
 
   // Re-render live data with new language (translated DOW labels, empty states, etc.)
-  if (lastData && (!$('page-ssh').hidden || !$('page-telnet').hidden)) {
+  if (lastData && (!$('page-overview').hidden || !$('page-ssh').hidden || !$('page-telnet').hidden)) {
     destroyCharts();
     renderAll(lastData);
   }
@@ -870,32 +884,32 @@ function renderAll(d) {
       return `
         <div class="campaign-card" data-campaign-id="${c.id}">
           <div class="campaign-header">
-            <span class="campaign-label">CAMPAIGN #${c.id}</span>
+            <span class="campaign-label">${t('campaign.title')} #${c.id}</span>
             <span class="campaign-badge ${isNovel ? 'badge-campaign-novel' : 'badge-campaign-established'}">${esc(patternLabel)}</span>
           </div>
           <div class="campaign-stats">
             <div class="campaign-stat">
-              <span class="campaign-stat-label">Onset</span>
+              <span class="campaign-stat-label">${t('campaign.stat.onset')}</span>
               <span class="campaign-stat-val mono">${fmtTs(c.onset_time)}</span>
             </div>
             <div class="campaign-stat">
-              <span class="campaign-stat-label">Z-Score</span>
+              <span class="campaign-stat-label">${t('campaign.stat.z')}</span>
               <span class="campaign-stat-val mono" style="color:var(--c-red)">${c.z_score.toFixed(2)}</span>
             </div>
             <div class="campaign-stat">
-              <span class="campaign-stat-label">Peak/hr</span>
+              <span class="campaign-stat-label">${t('campaign.stat.peak')}</span>
               <span class="campaign-stat-val mono">${Math.round(c.peak_rate_per_hour).toLocaleString()}</span>
             </div>
             <div class="campaign-stat">
-              <span class="campaign-stat-label">Baseline/hr</span>
+              <span class="campaign-stat-label">${t('campaign.stat.baseline')}</span>
               <span class="campaign-stat-val mono">${Math.round(c.baseline_rate_per_hour).toLocaleString()}</span>
             </div>
             <div class="campaign-stat">
-              <span class="campaign-stat-label">New ASNs</span>
+              <span class="campaign-stat-label">${t('campaign.stat.new_asns')}</span>
               <span class="campaign-stat-val mono">${c.new_asn_count}</span>
             </div>
             <div class="campaign-stat">
-              <span class="campaign-stat-label">New-ASN Traffic</span>
+              <span class="campaign-stat-label">${t('campaign.stat.new_asn_traffic')}</span>
               <span class="campaign-stat-val mono">${Math.round(c.spike_ratio * 100)}%</span>
             </div>
           </div>
@@ -911,9 +925,9 @@ function renderAll(d) {
             <h4 class="campaign-detail-title">${t('campaign.detail.creds')}</h4>
             <table class="data-tbl">
               <thead><tr>
-                <th data-i18n="th.username">Username</th>
-                <th data-i18n="th.password">Password</th>
-                <th data-i18n="th.attempts">Attempts</th>
+                <th>${t('th.username')}</th>
+                <th>${t('th.password')}</th>
+                <th>${t('th.attempts')}</th>
                 <th>${t('th.novel')}</th>
               </tr></thead>
               <tbody>${pairRows}</tbody>
@@ -926,8 +940,8 @@ function renderAll(d) {
             <table class="data-tbl">
               <thead><tr>
                 <th>ASN</th>
-                <th data-i18n="th.asn_org">Organization</th>
-                <th data-i18n="th.attempts">Attempts</th>
+                <th>${t('th.asn_org')}</th>
+                <th>${t('th.attempts')}</th>
               </tr></thead>
               <tbody>${asnRows}</tbody>
             </table>
@@ -937,6 +951,22 @@ function renderAll(d) {
 
     bindCampaignActions(campaigns);
   }
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {}
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  ta.remove();
+  if (!ok) throw new Error('copy rejected');
 }
 
 function bindCampaignActions(campaigns) {
@@ -965,7 +995,7 @@ function bindCampaignActions(campaigns) {
     copyBtn?.addEventListener('click', async () => {
       const lines = (c.top_pairs || []).map(p => `${p.username}:${p.password}`).join('\n');
       try {
-        await navigator.clipboard.writeText(lines);
+        await copyText(lines);
         copyBtn.textContent = t('campaign.act.copied');
         setTimeout(() => { copyBtn.textContent = t('campaign.act.copy'); }, 1500);
       } catch {
@@ -1075,7 +1105,7 @@ function counter(el, target) {
 let _worldAtlas = null;
 async function _fetchWorldAtlas() {
   if (!_worldAtlas) {
-    const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json');
     _worldAtlas = await res.json();
   }
   return _worldAtlas;
@@ -1164,7 +1194,8 @@ async function choroplethChart(canvasId, countryData, countryAsns) {
   if (existing) existing.destroy();
 
   const topology = await _fetchWorldAtlas();
-  const features = topojson.feature(topology, topology.objects.countries).features;
+  const features = topojson.feature(topology, topology.objects.countries).features
+    .filter(f => f.id !== '010');
 
   const byNum = {};
   for (const r of countryData) {
@@ -1213,11 +1244,12 @@ async function choroplethChart(canvasId, countryData, countryAsns) {
       labels: features.map(f => f.properties.name),
       datasets: [{
         data: features.map(f => ({ feature: f, value: byNum[+f.id] ?? 0 })),
+        outline: features,
         backgroundColor(ctx) {
           return heatColor(ctx.dataset.data[ctx.dataIndex]?.value ?? 0);
         },
         borderColor: dark ? '#3a3a3a' : '#b8b0a0',
-        borderWidth: 0.6,
+        borderWidth: 0.4,
         hoverBorderColor: dark ? '#FABD2F' : '#B57614',
         hoverBorderWidth: 1.2,
       }],
@@ -1265,7 +1297,7 @@ async function choroplethChart(canvasId, countryData, countryAsns) {
         },
       },
       scales: {
-        projection: { type: 'projection', axis: 'x', projection: 'equalEarth', position: 'chartArea', display: false },
+        projection: { type: 'projection', axis: 'x', projection: 'mercator', position: 'chartArea', display: false },
         color:      { type: 'color',      axis: 'x', display: false },
       },
     },
