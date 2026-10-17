@@ -185,7 +185,7 @@
             <h2 class="section-heading" data-i18n="section.geo">Attack Origins</h2>
             <div class="chart-card" style="margin-bottom:16px">
               <h3 class="chart-title" data-i18n="chart.countries">World Heatmap</h3>
-              <div class="chart-body" style="height:370px"><canvas id="chart-countries"></canvas></div>
+              <div class="chart-body choropleth-body"><canvas id="chart-countries"></canvas></div>
               <div id="countries-legend" class="choropleth-legend"></div>
             </div>
             <div class="charts-row">
@@ -206,6 +206,21 @@
                   <tbody></tbody>
                 </table>
               </div>
+            </div>
+            <div class="tbl-wrap" id="section-top-ips" style="margin-top:16px">
+              <h3 class="chart-title" data-i18n="section.top_ips" style="padding:10px 14px 6px">Top Attacking IPs</h3>
+              <table class="data-tbl" id="tbl-top-ips">
+                <thead><tr>
+                  <th data-i18n="th.rank">#</th>
+                  <th data-i18n="th.ip">IP</th>
+                  <th data-i18n="th.country">Country</th>
+                  <th>ASN</th>
+                  <th data-i18n="th.asn_org">Organization</th>
+                  <th data-i18n="th.sessions">Sessions</th>
+                  <th data-i18n="th.attempts">Attempts</th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
             </div>
           </section>
 
@@ -400,7 +415,7 @@
                 <thead><tr>
                   <th data-i18n="th.rank">#</th>
                   <th data-i18n="th.sha">SHA-256</th>
-                  <th data-i18n="th.url">URL</th>
+                  <th data-i18n="th.origin">URL / Source</th>
                   <th data-i18n="th.downloads">Downloads</th>
                   <th data-i18n="th.first_seen">First Seen</th>
                 </tr></thead>
@@ -751,6 +766,38 @@
               <div class="wl-preview">
                 <div class="wl-preview-label" data-i18n="wl.preview.pairs">preview — top 5 by frequency (user:pass format)</div>
                 <div class="wl-preview-list" id="wl-preview-pairs"></div>
+              </div>
+            </div>
+
+            <!-- IP blocklist -->
+            <div class="wl-card">
+              <div class="wl-card-header">
+                <div>
+                  <h3 class="wl-card-title" data-i18n="wl.ips">IP Blocklist</h3>
+                  <div class="wl-stats">
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.entries">entries</span>
+                      <span class="wl-stat-val" id="wl-count-ips">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.period">period</span>
+                      <span class="wl-stat-val" id="wl-period-ips">—</span>
+                    </div>
+                    <div class="wl-stat">
+                      <span class="wl-stat-label" data-i18n="wl.size">~size (gz)</span>
+                      <span class="wl-stat-val" id="wl-size-ips">—</span>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn-download" data-wtype="ips">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  .txt.gz
+                </button>
+              </div>
+              <div class="wl-hash" id="wl-hash-ips"></div>
+              <div class="wl-preview">
+                <div class="wl-preview-label" data-i18n="wl.preview.ips">preview: top 5 by sessions</div>
+                <div class="wl-preview-list" id="wl-preview-ips"></div>
               </div>
             </div>
 

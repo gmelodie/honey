@@ -12,6 +12,20 @@ from cowrie.core.config import CowrieConfig
 TRANSIENT_ERRORS = ("08003", "08006", "40001", "57014", "53300")
 
 
+
+def download_source(event):
+    if event.get("url"):
+        return None
+    dest = event.get("destfile")
+    return f"redir {dest}" if dest else "stdin"
+
+
+def upload_source(event):
+    if event.get("url"):
+        return f"scp {event['url']}"
+    return f"sftp {event.get('filename', '')}"
+
+
 class ReconnectingPostgreSQLConnectionPool(adbapi.ConnectionPool):
     def _runInteraction(self, interaction, *args, **kw):
         try:
@@ -121,8 +135,8 @@ class Output(cowrie.core.output.Output):
 
         elif event["eventid"] == "cowrie.session.file_download":
             self.simpleQuery(
-                "INSERT INTO downloads (session, timestamp, url, outfile, shasum) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s)",
-                (event["session"], event["time"], event.get("url") or None, event["outfile"], event["shasum"]),
+                "INSERT INTO downloads (session, timestamp, url, outfile, shasum, source) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s, %s)",
+                (event["session"], event["time"], event.get("url") or None, event["outfile"], event["shasum"], download_source(event)),
             )
 
         elif event["eventid"] == "cowrie.session.file_download.failed":
@@ -133,8 +147,8 @@ class Output(cowrie.core.output.Output):
 
         elif event["eventid"] == "cowrie.session.file_upload":
             self.simpleQuery(
-                "INSERT INTO downloads (session, timestamp, url, outfile, shasum) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s)",
-                (event["session"], event["time"], None, event["outfile"], event["shasum"]),
+                "INSERT INTO downloads (session, timestamp, url, outfile, shasum, source) VALUES (%s, TO_TIMESTAMP(%s), %s, %s, %s, %s)",
+                (event["session"], event["time"], None, event["outfile"], event["shasum"], upload_source(event)),
             )
 
         elif event["eventid"] == "cowrie.session.input":

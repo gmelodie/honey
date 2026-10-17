@@ -45,8 +45,12 @@ const WINDOWS: [Window; 4] = [
 ];
 
 fn since_clause(since: Option<&str>) -> String {
+    since_col_clause("\"timestamp\"", since)
+}
+
+fn since_col_clause(col: &str, since: Option<&str>) -> String {
     since
-        .map(|s| format!("AND \"timestamp\" >= {s}"))
+        .map(|s| format!("AND {col} >= {s}"))
         .unwrap_or_default()
 }
 
@@ -91,6 +95,16 @@ fn fetch_trend_rows(db: &mut Client, recent: &str, baseline: &str) -> Result<Vec
         .collect())
 }
 
+fn fetch_ips(db: &mut Client, since: Option<&str>) -> Result<Vec<String>> {
+    let sql = format!(
+        "SELECT ip FROM sessions
+         WHERE ip IS NOT NULL AND ip <> '' {}
+         GROUP BY ip ORDER BY COUNT(*) DESC, ip",
+        since_col_clause("starttime", since)
+    );
+    Ok(db.query(&sql, &[])?.iter().map(|r| r.get(0)).collect())
+}
+
 fn write_lines<S: AsRef<str>>(path: &Path, lines: &[S]) -> Result<()> {
     let mut text = String::new();
     for l in lines {
@@ -127,19 +141,22 @@ fn generate(
     let passwords = fetch_ranked(db, "password", w.since)?;
     let usernames = fetch_ranked(db, "username", w.since)?;
     let pairs = fetch_pairs(db, w.since)?;
+    let ips = fetch_ips(db, w.since)?;
     write_lines(&dir.join("passwords.txt"), &passwords)?;
     write_lines(&dir.join("usernames.txt"), &usernames)?;
     write_lines(&dir.join("passwords_usernames.txt"), &pairs)?;
+    write_lines(&dir.join("ips.txt"), &ips)?;
 
     let (hashcat, john) = generate_rules(&passwords);
     write_atomic(&dir.join("hashcat.rule"), hashcat.as_bytes())?;
     write_atomic(&dir.join("john.rule"), john.as_bytes())?;
 
     let mut summary = format!(
-        "{} passwords, {} usernames, {} pairs",
+        "{} passwords, {} usernames, {} pairs, {} ips",
         passwords.len(),
         usernames.len(),
-        pairs.len()
+        pairs.len(),
+        ips.len()
     );
 
     if let Some(bf) = bloom {

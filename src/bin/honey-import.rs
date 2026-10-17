@@ -126,15 +126,17 @@ fn insert(tx: &mut Transaction, b: &Batch) -> Result<()> {
 
     let d = &b.downloads;
     tx.execute(
-        "INSERT INTO downloads (session, timestamp, url, outfile, shasum)
-         SELECT s, ts::timestamptz, url, outfile, sha
-         FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[]) AS t(s, ts, url, outfile, sha)",
+        "INSERT INTO downloads (session, timestamp, url, outfile, shasum, source)
+         SELECT s, ts::timestamptz, url, outfile, sha, src
+         FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[])
+              AS t(s, ts, url, outfile, sha, src)",
         &[
             &col(d, |r| r.session.clone()),
             &col(d, |r| r.timestamp.clone()),
             &col(d, |r| r.url.clone()),
             &col(d, |r| r.outfile.clone()),
             &col(d, |r| r.shasum.clone()),
+            &col(d, |r| r.source.clone()),
         ],
     )?;
 

@@ -703,6 +703,7 @@ body { min-height: 100vh; overflow-x: hidden; }
 }
 
 /* ── Choropleth legend ───────────────────────────────────────────────── */
+.choropleth-body { aspect-ratio: 2.05 / 1; max-height: 560px; width: 100%; }
 .choropleth-legend {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 0 2px;

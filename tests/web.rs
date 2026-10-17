@@ -186,6 +186,7 @@ async fn wordlist_meta_all_missing_reports_not_ready() {
         "usernames",
         "passwords",
         "pairs",
+        "ips",
         "novel_passwords",
         "trending_passwords",
         "dying_passwords",

@@ -242,6 +242,16 @@ fn compute_geo(q: &mut Query) -> Result<Value> {
         ))?,
         total,
     );
+    let top_ips = q.rows(&format!(
+        "SELECT s.ip, g.country_iso, g.asn, g.asn_org,
+                count(DISTINCT s.id) AS sessions, count(a.id) AS attempts
+         FROM sessions s
+         LEFT JOIN ip_geo_cache g ON g.ip = s.ip
+         LEFT JOIN auth a ON a.session = s.id
+         WHERE {s} AND s.ip IS NOT NULL
+         GROUP BY s.ip, g.country_iso, g.asn, g.asn_org
+         ORDER BY sessions DESC, attempts DESC LIMIT 20"
+    ))?;
 
     let isos: Vec<String> = top_countries
         .iter()
@@ -256,6 +266,7 @@ fn compute_geo(q: &mut Query) -> Result<Value> {
     Ok(json!({
         "top_countries": top_countries,
         "top_asns": top_asns,
+        "top_ips": top_ips,
         "new_asns": compute_new_asns(q)?,
         "coverage_pct": if total > 0 { round_to(100.0 * covered as f64 / total as f64, 1) } else { 0.0 },
         "country_asns": country_asns,
@@ -355,13 +366,13 @@ fn compute(db: &mut Client, w: &Window, wordlists: &Path, campaigns: &[Value]) -
              FROM auth a JOIN sessions s ON a.session = s.id
              WHERE {a} ORDER BY a.timestamp DESC LIMIT 100"))?,
         "dl_log": q.rows(&format!(
-            "SELECT d.timestamp AS time, s.ip, left(d.session, 8) AS session, d.url, d.outfile, d.shasum
+            "SELECT d.timestamp AS time, s.ip, left(d.session, 8) AS session, d.url, d.source, d.outfile, d.shasum
              FROM downloads d JOIN sessions s ON d.session = s.id
              WHERE {d} ORDER BY d.timestamp DESC LIMIT 50"))?,
         "malware_hashes_detail": q.rows(&format!(
-            "SELECT d.shasum, d.url, count(*) AS downloads, min(d.timestamp) AS first_seen
+            "SELECT d.shasum, d.url, d.source, count(*) AS downloads, min(d.timestamp) AS first_seen
              FROM downloads d WHERE {d} AND d.shasum IS NOT NULL
-             GROUP BY d.shasum, d.url ORDER BY downloads DESC LIMIT 20"))?,
+             GROUP BY d.shasum, d.url, d.source ORDER BY downloads DESC LIMIT 20"))?,
     });
 
     out["telnet"] = or_fallback(
@@ -373,7 +384,7 @@ fn compute(db: &mut Client, w: &Window, wordlists: &Path, campaigns: &[Value]) -
     out["geo"] = or_fallback(
         "geo",
         compute_geo(&mut q),
-        json!({"top_countries": [], "top_asns": [], "new_asns": [], "coverage_pct": 0.0}),
+        json!({"top_countries": [], "top_asns": [], "top_ips": [], "new_asns": [], "coverage_pct": 0.0}),
     );
     out["campaigns"] = if CAMPAIGN_WINDOWS.contains(&w.name) {
         json!(campaigns)

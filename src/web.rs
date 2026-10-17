@@ -34,10 +34,11 @@ const PERIODS: [(&str, &str, Option<i64>); 4] = [
 ];
 
 /// `(url param, file name)`, in response order.
-const WORDLISTS: [(&str, &str); 8] = [
+const WORDLISTS: [(&str, &str); 9] = [
     ("usernames", "usernames.txt"),
     ("passwords", "passwords.txt"),
     ("pairs", "passwords_usernames.txt"),
+    ("ips", "ips.txt"),
     ("novel_passwords", "novel_passwords.txt"),
     ("trending_passwords", "trending_passwords.txt"),
     ("dying_passwords", "dying_passwords.txt"),

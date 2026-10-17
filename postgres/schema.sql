@@ -56,8 +56,12 @@ CREATE TABLE IF NOT EXISTS downloads (
     "timestamp" TIMESTAMP WITH TIME ZONE,
     url TEXT,
     outfile TEXT,
-    shasum VARCHAR(64)
+    shasum VARCHAR(64),
+    source TEXT
 );
+
+-- How a file without a URL arrived: "redir <path>", "stdin", "scp <path>" or "sftp <name>".
+ALTER TABLE downloads ADD COLUMN IF NOT EXISTS source TEXT;
 
 CREATE TABLE IF NOT EXISTS keyfingerprints (
     id SERIAL PRIMARY KEY,

@@ -41,6 +41,7 @@ pub struct Download {
     pub url: Option<String>,
     pub outfile: String,
     pub shasum: String,
+    pub source: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -65,6 +66,40 @@ pub struct Batch {
 /// `PostgreSQL` rejects NUL bytes in text columns.
 fn text(ev: &Value, key: &str) -> Option<String> {
     ev.get(key)?.as_str().map(|s| s.replace('\0', ""))
+}
+
+fn download(ev: &Value, eid: &str, session: Option<String>, timestamp: Option<String>) -> Download {
+    let url = text(ev, "url").filter(|u| !u.is_empty());
+    let (url, source) = if eid == "cowrie.session.file_upload" {
+        (None, Some(upload_source(ev, url)))
+    } else {
+        let source = url.is_none().then(|| redir_source(ev));
+        (url, source)
+    };
+    Download {
+        session,
+        timestamp,
+        url,
+        outfile: text_or(ev, "outfile", ""),
+        shasum: text_or(ev, "shasum", ""),
+        source,
+    }
+}
+
+/// Cowrie logs echo/cat drops as downloads with a `destfile` and no URL.
+fn redir_source(ev: &Value) -> String {
+    match text(ev, "destfile").filter(|d| !d.is_empty()) {
+        Some(dest) => format!("redir {dest}"),
+        None => "stdin".into(),
+    }
+}
+
+/// SCP uploads carry the target path as `url`; SFTP uploads carry only `filename`.
+fn upload_source(ev: &Value, url: Option<String>) -> String {
+    match url {
+        Some(path) => format!("scp {path}"),
+        None => format!("sftp {}", text_or(ev, "filename", "")),
+    }
 }
 
 fn text_or(ev: &Value, key: &str, default: &str) -> String {
@@ -173,13 +208,9 @@ impl Batch {
                         }
                     }
                 }
-                "cowrie.session.file_download" => b.downloads.push(Download {
-                    session: sid,
-                    timestamp: ts,
-                    url: text(&ev, "url").filter(|u| !u.is_empty()),
-                    outfile: text_or(&ev, "outfile", ""),
-                    shasum: text_or(&ev, "shasum", ""),
-                }),
+                "cowrie.session.file_download" | "cowrie.session.file_upload" => {
+                    b.downloads.push(download(&ev, &eid, sid, ts));
+                }
                 "cowrie.client.fingerprint" => b.fingerprints.push(Fingerprint {
                     session: sid,
                     username: text(&ev, "username"),
@@ -393,6 +424,48 @@ mod tests {
                 b.downloads[1].shasum.as_str()
             ),
             ("", "")
+        );
+    }
+
+    #[test]
+    fn download_without_url_records_how_the_file_arrived() {
+        let ev = |id: &str, extra: Value| {
+            let mut e = json!({"eventid": id, "session": "a"});
+            e.as_object_mut()
+                .unwrap()
+                .extend(extra.as_object().unwrap().clone());
+            e
+        };
+        let b = collect(vec![
+            ev(
+                "cowrie.session.file_download",
+                json!({"url": "http://x/y", "destfile": ""}),
+            ),
+            ev(
+                "cowrie.session.file_download",
+                json!({"destfile": "/tmp/x"}),
+            ),
+            ev("cowrie.session.file_download", json!({"destfile": ""})),
+            ev(
+                "cowrie.session.file_upload",
+                json!({"url": "/tmp/s", "filename": "s"}),
+            ),
+            ev("cowrie.session.file_upload", json!({"filename": "f"})),
+        ]);
+        let got: Vec<_> = b
+            .downloads
+            .iter()
+            .map(|d| (d.url.as_deref(), d.source.as_deref()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (Some("http://x/y"), None),
+                (None, Some("redir /tmp/x")),
+                (None, Some("stdin")),
+                (None, Some("scp /tmp/s")),
+                (None, Some("sftp f")),
+            ]
         );
     }
 

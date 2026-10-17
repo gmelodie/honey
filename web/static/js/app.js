@@ -33,6 +33,7 @@ const STRINGS = {
     'section.campaigns':    'Active Campaign Alerts',
     'section.geo':          'Attack Origins',
     'section.new_asns':     'New ASNs This Window',
+    'section.top_ips':      'Top Attacking IPs',
     'chart.countries':      'Top Countries',
     'chart.asns':           'Top ASNs',
     'th.asn_org':           'Organization',
@@ -117,6 +118,9 @@ const STRINGS = {
     'th.command':     'Command',
     'th.ok':          'OK',
     'th.url':         'URL',
+    'th.origin':      'URL / Source',
+    'th.country':     'Country',
+    'th.sessions':    'Sessions',
     'th.sha':         'SHA-256',
 
     'tab.commands': 'Commands',
@@ -137,6 +141,8 @@ const STRINGS = {
     'wl.usernames':        'Usernames',
     'wl.passwords':        'Passwords',
     'wl.pairs':            'Credential Pairs',
+    'wl.ips':              'IP Blocklist',
+    'wl.preview.ips':      'preview: top 5 by sessions',
     'wl.novel_passwords':  'Novel Passwords',
     'wl.trending_passwords': 'Trending Passwords',
     'wl.dying_passwords':    'Dying Passwords',
@@ -195,6 +201,7 @@ const STRINGS = {
     'section.campaigns':    'Alertas de Campanha Ativa',
     'section.geo':          'Origens dos Ataques',
     'section.new_asns':     'Novos ASNs Neste Período',
+    'section.top_ips':      'IPs que Mais Atacaram',
     'chart.countries':      'Top Países',
     'chart.asns':           'Top ASNs',
     'th.asn_org':           'Organização',
@@ -279,6 +286,9 @@ const STRINGS = {
     'th.command':     'Comando',
     'th.ok':          'OK',
     'th.url':         'URL',
+    'th.origin':      'URL / Origem',
+    'th.country':     'País',
+    'th.sessions':    'Sessões',
     'th.sha':         'SHA-256',
 
     'tab.commands': 'Comandos',
@@ -299,6 +309,8 @@ const STRINGS = {
     'wl.usernames':        'Usuários',
     'wl.passwords':        'Senhas',
     'wl.pairs':            'Pares de Credenciais',
+    'wl.ips':              'Lista de Bloqueio de IPs',
+    'wl.preview.ips':      'prévia: top 5 por sessões',
     'wl.novel_passwords':  'Senhas Novas',
     'wl.trending_passwords': 'Senhas em Alta',
     'wl.dying_passwords':    'Senhas em Queda',
@@ -732,7 +744,7 @@ function renderAll(d) {
   fillTable('tbl-dl', d.dl_log, r =>
     `<td class="mono">${fmtTs(r.time)}</td>
      <td class="mono">${esc(r.ip)}</td>
-     <td class="mono truncate">${esc(r.url)}</td>
+     <td class="mono truncate">${esc(r.url || r.source || '—')}</td>
      <td class="mono">${r.shasum ? `<span title="${esc(r.shasum)}">${esc(r.shasum.substring(0,14))}…</span>` : '<span style="color:var(--fg-dim)">—</span>'}</td>`
   );
 
@@ -742,7 +754,7 @@ function renderAll(d) {
   fillTable('tbl-malware-hashes', mhd, r =>
     `<td class="rank">${r._rank}</td>
      <td class="mono truncate" title="${esc(r.shasum)}">${esc(r.shasum.substring(0, 16))}…</td>
-     <td class="mono truncate">${esc(r.url || '—')}</td>
+     <td class="mono truncate">${esc(r.url || r.source || '—')}</td>
      <td class="num mono">${r.downloads}</td>
      <td class="mono">${fmtTs(r.first_seen)}</td>`
   );
@@ -852,6 +864,18 @@ function renderAll(d) {
      <td class="mono">AS${r.asn}</td>
      <td class="mono truncate">${esc(r.asn_org || '—')}</td>
      <td class="mono">${fmtTs(r.first_seen)}</td>
+     <td class="num mono">${Number(r.attempts).toLocaleString()}</td>`
+  );
+
+  const topIps = geo.top_ips || [];
+  $('section-top-ips').hidden = !topIps.length;
+  fillTable('tbl-top-ips', topIps, r =>
+    `<td class="rank">${r._rank}</td>
+     <td class="mono">${esc(r.ip)}</td>
+     <td class="mono">${r.country_iso ? `${countryFlag(r.country_iso)} ${esc(r.country_iso)}` : '—'}</td>
+     <td class="mono">${r.asn ? `<a href="https://bgp.he.net/AS${r.asn}" target="_blank" rel="noopener">AS${r.asn}</a>` : '—'}</td>
+     <td class="mono truncate">${esc(r.asn_org || '—')}</td>
+     <td class="num mono">${Number(r.sessions).toLocaleString()}</td>
      <td class="num mono">${Number(r.attempts).toLocaleString()}</td>`
   );
 
@@ -1281,7 +1305,7 @@ async function choroplethChart(canvasId, countryData, countryAsns) {
         },
       },
       scales: {
-        projection: { type: 'projection', axis: 'x', projection: 'mercator', position: 'chartArea', display: false },
+        projection: { type: 'projection', axis: 'x', projection: 'equalEarth', position: 'chartArea', display: false },
         color:      { type: 'color',      axis: 'x', display: false },
       },
     },

@@ -71,6 +71,7 @@ fn cowrie_log() -> String {
         json!({"eventid": "cowrie.login.success", "session": s1, "username": "root", "password": "Zebra2024!", "timestamp": t(29)}),
         json!({"eventid": "cowrie.command.input", "session": s1, "input": "uname -a", "timestamp": t(28)}),
         json!({"eventid": "cowrie.session.file_download", "session": s1, "url": "http://x/b.sh", "outfile": "f", "shasum": "ab", "timestamp": t(28)}),
+        json!({"eventid": "cowrie.session.file_download", "session": s1, "destfile": "/tmp/x", "outfile": "g", "shasum": "cd", "timestamp": t(28)}),
         json!({"eventid": "cowrie.session.closed", "session": s1, "timestamp": t(27)}),
         json!({"eventid": "cowrie.session.connect", "session": s2, "src_ip": "198.51.100.2", "timestamp": t(20), "protocol": "telnet"}),
         json!({"eventid": "cowrie.login.failed", "session": s2, "username": "admin", "password": "123456", "timestamp": t(19)}),
@@ -138,6 +139,7 @@ fn check_wordlists(words: &Path) {
         "123456:admin\n123456:root\nZebra2024!:root\n"
     );
     assert_eq!(read(&all.join("novel_passwords.txt")), "Zebra2024!\n");
+    assert_eq!(read(&all.join("ips.txt")), "198.51.100.1\n198.51.100.2\n");
     assert!(read(&all.join("hashcat.rule")).contains("\n$2 $0 $2 $4 $!\nc $2 $0 $2 $4 $!\n"));
     assert_eq!(
         read(&words.join("daily/trending_passwords.txt")),
@@ -159,8 +161,20 @@ fn check_stats(stats: &Path) {
     );
     assert_eq!(
         [&o["downloads"], &o["novel_passwords"], &o["success_pct"]],
-        [&json!(2), &json!(1), &json!(33.33)]
+        [&json!(4), &json!(1), &json!(33.33)]
     );
+    assert_eq!(
+        h1["geo"]["top_ips"][0],
+        json!({"ip": "198.51.100.1", "country_iso": null, "asn": null, "asn_org": null,
+               "sessions": 1, "attempts": 4})
+    );
+    let sources: Vec<&Value> = h1["malware_hashes_detail"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| &r["source"])
+        .collect();
+    assert!(sources.contains(&&json!("redir /tmp/x")), "{sources:?}");
     assert_eq!(
         h1["top_passwords"][0],
         json!({"password": "123456", "attempts": 4})
