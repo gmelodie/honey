@@ -12,6 +12,13 @@ const STRINGS = {
 
     'nav.dashboard':       'Dashboard',
     'nav.wordlists':       'Wordlists',
+    'nav.live':            'Live',
+    'live.pause':          'pause',
+    'live.resume':         'resume',
+    'live.clear':          'clear',
+    'live.on':             'live',
+    'live.off':            'reconnecting',
+    'live.new':            n => `↓ ${n} new`,
     'win.all':             'All',
 
     'card.connections':           'Connections',
@@ -142,7 +149,7 @@ const STRINGS = {
     'wl.passwords':        'Passwords',
     'wl.pairs':            'Credential Pairs',
     'wl.ips':              'IP Blocklist',
-    'wl.preview.ips':      'preview: top 5 by sessions',
+    'wl.preview.ips':      'Top 5',
     'wl.novel_passwords':  'Novel Passwords',
     'wl.trending_passwords': 'Trending Passwords',
     'wl.dying_passwords':    'Dying Passwords',
@@ -153,12 +160,12 @@ const STRINGS = {
     'wl.size_plain':    'size',
     'wl.hashcat_rules': 'Hashcat Rules',
     'wl.john_rules':    'John Rules',
-    'wl.preview':                'preview — top 5 by frequency',
-    'wl.preview.pairs':          'preview — top 5 by frequency (user:pass format)',
-    'wl.preview.trending_passwords': 'preview — top 5 fastest growing',
-    'wl.preview.dying_passwords':    'preview — top 5 fastest declining',
-    'wl.preview.novel_passwords': 'preview — top 5 not in common lists',
-    'wl.preview.rules':          'preview — top observed mutations',
+    'wl.preview':                'Top 5',
+    'wl.preview.pairs':          'Top 5',
+    'wl.preview.trending_passwords': 'Top 5',
+    'wl.preview.dying_passwords':    'Top 5',
+    'wl.preview.novel_passwords': 'Top 5',
+    'wl.preview.rules':          'Top 5',
     'wl.trending_passwords.tip': 'Passwords with a growing share of attempts compared to the previous period. Sorted by relative growth rate.',
     'wl.dying_passwords.tip':    'Passwords with a shrinking share of attempts compared to the previous period. Sorted by drop in share.',
     'wl.novel_passwords.tip': 'Passwords not found in common reference wordlists — filtered against xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k, and darkweb 2017 top 10 k.',
@@ -180,6 +187,13 @@ const STRINGS = {
 
     'nav.dashboard':       'Painel',
     'nav.wordlists':       'Wordlists',
+    'nav.live':            'Ao vivo',
+    'live.pause':          'pausar',
+    'live.resume':         'retomar',
+    'live.clear':          'limpar',
+    'live.on':             'ao vivo',
+    'live.off':            'reconectando',
+    'live.new':            n => `↓ ${n} novas`,
     'win.all':             'Tudo',
 
     'card.connections':           'Conexões',
@@ -310,7 +324,7 @@ const STRINGS = {
     'wl.passwords':        'Senhas',
     'wl.pairs':            'Pares de Credenciais',
     'wl.ips':              'Lista de Bloqueio de IPs',
-    'wl.preview.ips':      'prévia: top 5 por sessões',
+    'wl.preview.ips':      'Top 5',
     'wl.novel_passwords':  'Senhas Novas',
     'wl.trending_passwords': 'Senhas em Alta',
     'wl.dying_passwords':    'Senhas em Queda',
@@ -321,12 +335,12 @@ const STRINGS = {
     'wl.size_plain':    'tamanho',
     'wl.hashcat_rules': 'Regras Hashcat',
     'wl.john_rules':    'Regras John',
-    'wl.preview':                'prévia — top 20 por frequência',
-    'wl.preview.pairs':          'prévia — top 20 por frequência (formato usuário:senha)',
-    'wl.preview.trending_passwords': 'prévia — top 5 crescendo mais rápido',
-    'wl.preview.dying_passwords':    'prévia — top 5 declinando mais rápido',
-    'wl.preview.novel_passwords': 'prévia — top 5 não estão em listas comuns',
-    'wl.preview.rules':          'prévia — mutações mais observadas',
+    'wl.preview':                'Top 5',
+    'wl.preview.pairs':          'Top 5',
+    'wl.preview.trending_passwords': 'Top 5',
+    'wl.preview.dying_passwords':    'Top 5',
+    'wl.preview.novel_passwords': 'Top 5',
+    'wl.preview.rules':          'Top 5',
     'wl.trending_passwords.tip': 'Senhas com participação crescente nas tentativas em comparação ao período anterior. Ordenadas pela taxa de crescimento relativo.',
     'wl.dying_passwords.tip':    'Senhas com participação decrescente nas tentativas em comparação ao período anterior. Ordenadas pela queda na participação.',
     'wl.novel_passwords.tip': 'Senhas não encontradas em listas de referência comuns — filtradas contra xato-net 1 M, NCSC 100 k, Pwdb top 1 M, probable top 12 k e darkweb 2017 top 10 k.',
@@ -378,6 +392,7 @@ function applyLang(lang) {
   if (lastWlData && !$('page-wordlists').hidden) {
     renderWordlists(lastWlData);
   }
+  syncLiveLabels();
 }
 
 // ── Gruvbox chart palette (bright — readable on light and dark) ───────────
@@ -530,8 +545,10 @@ document.querySelectorAll('.page-tab').forEach(btn => {
     $('page-ssh').hidden       = page !== 'ssh';
     $('page-telnet').hidden    = page !== 'telnet';
     $('page-wordlists').hidden = page !== 'wordlists';
-    $('dashboard-controls').style.display = page === 'wordlists' ? 'none' : 'flex';
+    $('page-live').hidden      = page !== 'live';
+    $('dashboard-controls').style.display = page === 'wordlists' || page === 'live' ? 'none' : 'flex';
     if (page === 'wordlists' && !wordlistsLoaded) loadWordlists();
+    if (page === 'live') startLive();
     if (page === 'telnet' || page === 'overview') requestAnimationFrame(() => Object.values(activeCharts).forEach(c => c.resize()));
   });
 });
@@ -1477,6 +1494,146 @@ function fillTable(id, rows, rowHtml) {
   }
   tbody.innerHTML = rows.map((r, i) => `<tr>${rowHtml({ ...r, _rank: i + 1 })}</tr>`).join('');
 }
+
+// ── Live terminal ─────────────────────────────────────────────────────────
+const LIVE_MAX_LINES = 2000;
+const live = {
+  es: null, paused: false, held: [], proto: '', grep: '',
+  seen: new Set(), seenOrder: [], users: new Map(), unread: 0,
+};
+
+function startLive() {
+  if (live.es) return;
+  live.es = new EventSource('/api/live');
+  live.es.onopen  = () => setLiveStatus(true);
+  live.es.onerror = () => setLiveStatus(false);
+  live.es.onmessage = m => {
+    if (live.seen.has(m.data)) return;
+    live.seen.add(m.data);
+    live.seenOrder.push(m.data);
+    if (live.seenOrder.length > 1000) live.seen.delete(live.seenOrder.shift());
+    let ev;
+    try { ev = JSON.parse(m.data); } catch { return; }
+    if (live.paused) { live.held.push(ev); syncLiveLabels(); return; }
+    appendLive(ev);
+  };
+}
+
+function setLiveStatus(on) {
+  $('term-status').dataset.state = on ? 'on' : 'off';
+  syncLiveLabels();
+}
+
+function syncLiveLabels() {
+  $('term-status').textContent = t($('term-status').dataset.state === 'on' ? 'live.on' : 'live.off');
+  $('term-pause').textContent = live.paused ? `${t('live.resume')} (${live.held.length})` : t('live.pause');
+  $('term-jump').textContent = tf('live.new', live.unread);
+}
+
+function liveClock(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  return isNaN(d) ? '--:--:--' : d.toLocaleTimeString('en-GB', { hour12: false });
+}
+
+function livePrompt(ev) {
+  const user = live.users.get(ev.s) || 'root';
+  return `${user}@svr04:~${user === 'root' ? '#' : '$'}`;
+}
+
+function liveBody(ev) {
+  const s = v => esc(v ?? '');
+  switch (ev.k) {
+    case 'connect': return `<span class="t-dim">connect</span>`;
+    case 'client':  return `<span class="t-dim">client </span> ${s(ev.v)}`;
+    case 'login':
+      if (ev.ok) live.users.set(ev.s, ev.u || 'root');
+      return `<span class="t-dim">login  </span> <span class="t-user">${s(ev.u)}</span><span class="t-dim">:</span><span class="t-pw">${s(ev.pw)}</span> `
+           + (ev.ok ? '<span class="t-ok">ACCEPTED</span>' : '<span class="t-bad">denied</span>');
+    case 'cmd':     return `<span class="t-prompt">${esc(livePrompt(ev))}</span> <span class="t-cmd">${s(ev.in)}</span>`;
+    case 'dl':      return `<span class="t-warn">download</span> ${s(ev.url)}`;
+    case 'ul':      return `<span class="t-warn">upload </span> ${s(ev.f)}`;
+    case 'closed':
+      live.users.delete(ev.s);
+      return `<span class="t-dim">closed  ${ev.dur != null ? Number(ev.dur).toFixed(1) + 's' : ''}</span>`;
+    default:        return s(ev.k);
+  }
+}
+
+function liveVisible(row) {
+  if (live.proto && row.dataset.proto !== live.proto) return false;
+  return !live.grep || row.textContent.toLowerCase().includes(live.grep);
+}
+
+function appendLive(ev) {
+  const screen = $('term-screen');
+  const atBottom = screen.scrollHeight - screen.scrollTop - screen.clientHeight < 24;
+  const row = document.createElement('div');
+  row.className = 'term-line';
+  row.dataset.proto = ev.p || '';
+  row.innerHTML =
+    `<span class="t-time">${liveClock(ev.t)}</span> `
+    + `<span class="t-proto t-${esc(ev.p || 'unk')}">${esc((ev.p || '?').padEnd(6))}</span> `
+    + `<span class="t-ip">${esc((ev.ip || '').padEnd(15))}</span> `
+    + `<span class="t-sess">${esc((ev.s || '').slice(0, 8))}</span> `
+    + liveBody(ev);
+  row.hidden = !liveVisible(row);
+  const lines = $('term-lines');
+  lines.appendChild(row);
+  while (lines.childElementCount > LIVE_MAX_LINES) lines.firstElementChild.remove();
+
+  if (atBottom) {
+    screen.scrollTop = screen.scrollHeight;
+  } else if (!row.hidden) {
+    live.unread++;
+    $('term-jump').hidden = false;
+    syncLiveLabels();
+  }
+}
+
+function refilterLive() {
+  document.querySelectorAll('#term-lines .term-line').forEach(r => { r.hidden = !liveVisible(r); });
+  $('term-screen').scrollTop = $('term-screen').scrollHeight;
+}
+
+document.querySelectorAll('.term-btn[data-proto]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.term-btn[data-proto]').forEach(b => b.classList.toggle('active', b === btn));
+    live.proto = btn.dataset.proto;
+    refilterLive();
+  });
+});
+
+$('term-grep').addEventListener('input', e => {
+  live.grep = e.target.value.trim().toLowerCase();
+  refilterLive();
+});
+
+$('term-pause').addEventListener('click', () => {
+  live.paused = !live.paused;
+  $('term-pause').classList.toggle('active', live.paused);
+  if (!live.paused) live.held.splice(0).forEach(appendLive);
+  syncLiveLabels();
+});
+
+$('term-clear').addEventListener('click', () => {
+  $('term-lines').replaceChildren();
+  live.held = [];
+  live.unread = 0;
+  $('term-jump').hidden = true;
+  syncLiveLabels();
+});
+
+$('term-screen').addEventListener('scroll', () => {
+  const s = $('term-screen');
+  if (s.scrollHeight - s.scrollTop - s.clientHeight < 24) {
+    live.unread = 0;
+    $('term-jump').hidden = true;
+  }
+});
+
+$('term-jump').addEventListener('click', () => {
+  $('term-screen').scrollTop = $('term-screen').scrollHeight;
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────
 // Apply stored language preference on page load

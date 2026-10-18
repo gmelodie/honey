@@ -1,6 +1,7 @@
 //! Dashboard HTTP server for the precomputed stats and wordlists.
 
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -10,12 +11,16 @@ use std::time::Duration;
 use axum::body::Bytes;
 use axum::extract::{Path as UrlPath, Query, State};
 use axum::http::{StatusCode, Uri, header};
+use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::Utc;
+use futures_util::{Stream, StreamExt, stream};
+use tokio::sync::broadcast::error::RecvError;
 
 use crate::gz_path;
+use crate::live::Live;
 use serde_json::{Value, json};
 
 const TEMPLATE: &str = include_str!("../web/templates/index.html");
@@ -59,6 +64,7 @@ struct AppState {
     cfg: Config,
     index_html: String,
     http: reqwest::Client,
+    live: Arc<Live>,
 }
 
 type Shared = State<Arc<AppState>>;
@@ -92,7 +98,7 @@ pub fn render_index(site_key: &str) -> String {
         .replace("{{RECAPTCHA_SITE_KEY_JSON}}", &script_json(site_key))
 }
 
-pub fn router(cfg: Config) -> Router {
+pub fn router(cfg: Config, live: Arc<Live>) -> Router {
     let state = AppState {
         index_html: render_index(&cfg.recaptcha_site_key),
         cfg,
@@ -100,6 +106,7 @@ pub fn router(cfg: Config) -> Router {
             .timeout(Duration::from_secs(10))
             .build()
             .expect("TLS backend initialises"),
+        live,
     };
     Router::new()
         .route("/", get(index))
@@ -108,6 +115,7 @@ pub fn router(cfg: Config) -> Router {
         .route("/api/stats", get(stats))
         .route("/api/wordlist", get(wordlist_meta))
         .route("/api/wordlist/{wtype}/download", get(wordlist_download))
+        .route("/api/live", get(live_events))
         .fallback(not_found)
         .with_state(Arc::new(state))
 }
@@ -169,6 +177,24 @@ async fn verify_captcha(State(st): Shared, body: Bytes) -> Response {
     let ok = body["success"].as_bool().unwrap_or(false)
         && body["score"].as_f64().unwrap_or(0.0) >= st.cfg.recaptcha_min_score;
     Json(json!({"success": ok})).into_response()
+}
+
+async fn live_events(State(st): Shared) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let (backlog, rx) = st.live.subscribe();
+    let fresh = stream::unfold(rx, |rx| async move {
+        let mut rx = rx?;
+        loop {
+            match rx.recv().await {
+                Ok(line) => return Some((line, Some(rx))),
+                Err(RecvError::Lagged(_)) => {}
+                Err(RecvError::Closed) => return None,
+            }
+        }
+    });
+    let events = stream::iter(backlog)
+        .chain(fresh)
+        .map(|line| Ok(Event::default().data(&*line)));
+    Sse::new(events).keep_alive(KeepAlive::default())
 }
 
 async fn stats(State(st): Shared, Query(q): Query<HashMap<String, String>>) -> Response {

@@ -1,9 +1,12 @@
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Router;
 use axum::body::{Body, to_bytes};
 use axum::http::{Method, Request, StatusCode, header};
+use honey::live::Live;
 use honey::web::{Config, fmt_bytes, render_index, router};
 use serde_json::{Value, json};
 use tower::ServiceExt;
@@ -28,14 +31,21 @@ fn env() -> Env {
 }
 
 fn app(e: &Env, secret: &str, url: &str) -> Router {
-    router(Config {
-        stats_dir: e.stats.clone(),
-        wordlist_dir: e.words.clone(),
-        recaptcha_site_key: "site".into(),
-        recaptcha_secret: secret.into(),
-        recaptcha_min_score: 0.5,
-        recaptcha_verify_url: url.into(),
-    })
+    app_with_live(e, secret, url, Live::new())
+}
+
+fn app_with_live(e: &Env, secret: &str, url: &str, live: Arc<Live>) -> Router {
+    router(
+        Config {
+            stats_dir: e.stats.clone(),
+            wordlist_dir: e.words.clone(),
+            recaptcha_site_key: "site".into(),
+            recaptcha_secret: secret.into(),
+            recaptcha_min_score: 0.5,
+            recaptcha_verify_url: url.into(),
+        },
+        live,
+    )
 }
 
 async fn send(
@@ -660,4 +670,73 @@ async fn verify_captcha_verifier_http_error_is_502() {
         (st, js(&body)),
         (StatusCode::BAD_GATEWAY, json!({"success": false}))
     );
+}
+
+async fn read_until(
+    body: &mut (impl futures_util::Stream<Item = Result<axum::body::Bytes, axum::Error>> + Unpin),
+    seen: &mut String,
+    needle: &str,
+) {
+    use futures_util::StreamExt;
+
+    let wait = async {
+        while !seen.contains(needle) {
+            let chunk = body.next().await.expect("stream open").unwrap();
+            seen.push_str(&String::from_utf8_lossy(&chunk));
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(10), wait)
+        .await
+        .expect(needle);
+}
+
+#[tokio::test]
+async fn live_streams_backlog_appends_and_rotated_file_then_ends_on_close() {
+    use std::io::Write;
+
+    let e = env();
+    let log = e.stats.join("cowrie.json");
+    std::fs::write(
+        &log,
+        "{\"eventid\":\"cowrie.session.connect\",\"session\":\"s1\",\"protocol\":\"ssh\",\"src_ip\":\"1.2.3.4\"}\n",
+    )
+    .unwrap();
+    let live = Live::spawn(log.clone());
+    let req = Request::builder()
+        .uri("/api/live")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app_with_live(&e, "", "", live.clone())
+        .oneshot(req)
+        .await
+        .unwrap();
+    assert_eq!(resp.headers()[header::CONTENT_TYPE], "text/event-stream");
+    let mut body = resp.into_body().into_data_stream();
+    let mut seen = String::new();
+
+    read_until(&mut body, &mut seen, r#""k":"connect""#).await;
+
+    let mut f = std::fs::OpenOptions::new().append(true).open(&log).unwrap();
+    f.write_all(
+        b"{\"eventid\":\"cowrie.command.input\",\"session\":\"s1\",\"input\":\"uname -a\"}\n",
+    )
+    .unwrap();
+    read_until(&mut body, &mut seen, r#""in":"uname -a""#).await;
+    assert!(seen.contains(r#""p":"ssh""#));
+
+    std::fs::rename(&log, e.stats.join("cowrie.json.1")).unwrap();
+    std::fs::write(
+        &log,
+        "{\"eventid\":\"cowrie.login.failed\",\"session\":\"s1\",\"username\":\"admin\"}\n",
+    )
+    .unwrap();
+    read_until(&mut body, &mut seen, r#""u":"admin""#).await;
+
+    live.close();
+    let tail = tokio::time::timeout(
+        Duration::from_secs(5),
+        to_bytes(Body::from_stream(body), usize::MAX),
+    )
+    .await;
+    assert!(tail.expect("stream ends after close").is_ok());
 }

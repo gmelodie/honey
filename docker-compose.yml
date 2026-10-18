@@ -148,9 +148,11 @@ services:
       - RECAPTCHA_MIN_SCORE=${RECAPTCHA_MIN_SCORE:-0.5}
       - WORDLIST_DIR=/wordlists
       - STATS_DIR=/stats
+      - COWRIE_LOG=/cowrie-log/cowrie.json
     volumes:
       - wordlists:/wordlists:ro
       - stats:/stats:ro
+      - ./cowrie/var/log/cowrie:/cowrie-log:ro
 
   # Nginx: routes ports 80 and 443 by Host header
   nginx:

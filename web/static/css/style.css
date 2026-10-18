@@ -799,6 +799,89 @@ body { min-height: 100vh; overflow-x: hidden; }
 .footer a:hover { color: var(--fg-muted); }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
+/* ── Live terminal ───────────────────────────────────────────────────── */
+.term {
+  --t-bg: #FBF1C7; --t-bar: #EBDBB2; --t-fg: #3C3836; --t-dim: #7C6F64;
+  --t-line: #D5C4A1; --t-rule: #EBDBB2;
+  --t-green: #79740E; --t-red: #9D0006; --t-yellow: #B57614; --t-blue: #076678;
+  --t-purple: #8F3F71; --t-aqua: #427B58; --t-orange: #AF3A03;
+  position: relative; background: var(--t-bg); color: var(--t-fg);
+  border: 1px solid var(--t-line);
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .74rem;
+}
+[data-theme="dark"] .term {
+  --t-bg: #1D2021; --t-bar: #32302F; --t-fg: #EBDBB2; --t-dim: #928374;
+  --t-line: #504945; --t-rule: #3C3836;
+  --t-green: #B8BB26; --t-red: #FB4934; --t-yellow: #FABD2F; --t-blue: #83A598;
+  --t-purple: #D3869B; --t-aqua: #8EC07C; --t-orange: #FE8019;
+}
+.term-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 6px 12px; background: var(--t-bar); border-bottom: 1px solid var(--t-line);
+}
+.term-title { color: var(--t-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.term-status { flex-shrink: 0; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.term-status::before {
+  content: ''; width: .7em; height: .7em; border-radius: 50%;
+  background: var(--t-dim);
+}
+.term-status[data-state="on"]  { color: var(--t-fg); }
+.term-status[data-state="on"]::before { background: var(--t-red); animation: live-pulse 2s ease-in-out infinite; }
+.term-status[data-state="off"] { color: var(--t-dim); }
+.term-tools {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 6px 12px; border-bottom: 1px dashed var(--t-rule);
+}
+.term-proto { display: flex; gap: 2px; }
+.term-btn {
+  background: none; border: 1px solid var(--t-line); color: var(--t-dim);
+  font: inherit; padding: 2px 8px; cursor: pointer;
+}
+.term-btn:hover { color: var(--t-fg); }
+.term-btn.active { background: var(--t-green); border-color: var(--t-green); color: var(--t-bg); }
+.term-grep { color: var(--t-yellow); display: flex; align-items: center; gap: 6px; }
+.term-grep input {
+  background: transparent; border: none; border-bottom: 1px solid var(--t-line);
+  color: var(--t-fg); font: inherit; width: 16ch; outline: none;
+}
+.term-grep input:focus { border-bottom-color: var(--t-yellow); }
+.term-screen {
+  height: calc(100vh - 230px); min-height: 320px; overflow: auto;
+  padding: 10px 12px; line-height: 1.55;
+}
+.term-line { white-space: pre; }
+.term-cursor {
+  display: inline-block; width: .6em; height: 1.1em; vertical-align: text-bottom;
+  background: var(--t-fg); animation: term-blink 1s steps(1) infinite;
+}
+@keyframes term-blink { 50% { opacity: 0; } }
+.page-tab-live { display: inline-flex; align-items: center; gap: 6px; }
+.live-dot {
+  width: .6em; height: .6em; border-radius: 50%;
+  background: var(--c-red); animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) {
+  .term-cursor, .live-dot, .term-status::before { animation: none !important; }
+}
+.term-jump {
+  position: absolute; right: 20px; bottom: 14px;
+  background: var(--t-yellow); color: var(--t-bg); border: none;
+  font: inherit; font-weight: 700; padding: 3px 10px; cursor: pointer;
+}
+.t-time, .t-dim, .t-sess { color: var(--t-dim); }
+.t-ssh    { color: var(--t-blue); }
+.t-telnet { color: var(--t-purple); }
+.t-unk    { color: var(--t-dim); }
+.t-ip     { color: var(--t-aqua); }
+.t-user   { color: var(--t-yellow); }
+.t-pw     { color: var(--t-orange); }
+.t-ok     { color: var(--t-green); font-weight: 700; }
+.t-bad    { color: var(--t-red); }
+.t-prompt { color: var(--t-green); font-weight: 700; }
+.t-cmd    { color: var(--t-fg); }
+.t-warn   { color: var(--t-red); font-weight: 700; }
+
 @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
 @media (max-width: 768px) {
   .content { padding: 14px 10px; }

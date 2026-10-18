@@ -539,6 +539,7 @@ dependencies = [
  "axum",
  "chrono",
  "flate2",
+ "futures-util",
  "maxminddb",
  "postgres",
  "proptest",

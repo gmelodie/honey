@@ -68,6 +68,7 @@
       <span class="brand-name">Honey</span>
       <nav class="page-nav">
         <button class="page-tab active" data-page="overview">Overview</button>
+        <button class="page-tab page-tab-live" data-page="live"><span class="live-dot"></span><span data-i18n="nav.live">Live</span></button>
         <button class="page-tab" data-page="ssh">SSH</button>
         <button class="page-tab" data-page="telnet">Telnet</button>
         <button class="page-tab" data-page="wordlists" data-i18n="nav.wordlists">Wordlists</button>
@@ -700,7 +701,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-usernames"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview">preview — top 5 by frequency</div>
+                <div class="wl-preview-label" data-i18n="wl.preview">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-usernames"></div>
               </div>
             </div>
@@ -732,7 +733,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-passwords"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview">preview — top 5 by frequency</div>
+                <div class="wl-preview-label" data-i18n="wl.preview">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-passwords"></div>
               </div>
             </div>
@@ -764,7 +765,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-pairs"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.pairs">preview — top 5 by frequency (user:pass format)</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.pairs">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-pairs"></div>
               </div>
             </div>
@@ -796,7 +797,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-ips"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.ips">preview: top 5 by sessions</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.ips">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-ips"></div>
               </div>
             </div>
@@ -828,7 +829,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-trending_passwords"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.trending_passwords">preview — top 5 fastest growing</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.trending_passwords">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-trending_passwords"></div>
               </div>
             </div>
@@ -860,7 +861,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-dying_passwords"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.dying_passwords">preview — top 5 fastest declining</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.dying_passwords">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-dying_passwords"></div>
               </div>
             </div>
@@ -892,7 +893,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-novel_passwords"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.novel_passwords">preview — top 5 not in common lists</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.novel_passwords">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-novel_passwords"></div>
               </div>
             </div>
@@ -920,7 +921,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-hashcat_rules"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.rules">preview — top observed mutations</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.rules">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-hashcat_rules"></div>
               </div>
             </div>
@@ -948,7 +949,7 @@
               </div>
               <div class="wl-hash" id="wl-hash-john_rules"></div>
               <div class="wl-preview">
-                <div class="wl-preview-label" data-i18n="wl.preview.rules">preview — top observed mutations</div>
+                <div class="wl-preview-label" data-i18n="wl.preview.rules">Top 5</div>
                 <div class="wl-preview-list" id="wl-preview-john_rules"></div>
               </div>
             </div>
@@ -957,6 +958,27 @@
         </section>
       </div><!-- /wl-root -->
     </div><!-- /page-wordlists -->
+
+    <div id="page-live" hidden>
+      <div class="term">
+        <div class="term-bar">
+          <span class="term-title">root@honey:~# tail -f /var/log/cowrie/cowrie.json</span>
+          <span id="term-status" class="term-status" data-state="off">offline</span>
+        </div>
+        <div class="term-tools">
+          <div class="term-proto" role="group" aria-label="Protocol">
+            <button class="term-btn active" data-proto="">all</button>
+            <button class="term-btn" data-proto="ssh">ssh</button>
+            <button class="term-btn" data-proto="telnet">telnet</button>
+          </div>
+          <label class="term-grep">grep <input id="term-grep" type="text" spellcheck="false" autocomplete="off"></label>
+          <button id="term-pause" class="term-btn" data-i18n="live.pause">pause</button>
+          <button id="term-clear" class="term-btn" data-i18n="live.clear">clear</button>
+        </div>
+        <div id="term-screen" class="term-screen" role="log" aria-live="off"><div id="term-lines"></div><span class="term-cursor"></span></div>
+        <button id="term-jump" class="term-jump" hidden></button>
+      </div>
+    </div><!-- /page-live -->
 
   </main>
 
