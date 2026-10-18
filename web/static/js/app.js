@@ -1537,7 +1537,7 @@ function liveClock(iso) {
 
 function livePrompt(ev) {
   const user = live.users.get(ev.s) || 'root';
-  return `${user}@svr04:~${user === 'root' ? '#' : '$'}`;
+  return `${user}@db-prod-02:~${user === 'root' ? '#' : '$'}`;
 }
 
 function liveBody(ev) {

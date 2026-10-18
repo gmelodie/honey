@@ -1,6 +1,9 @@
+import configparser
 import os
 import pwd
 import re
+
+import persona
 
 # Fix ownership of mounted volumes so the cowrie user can write to them
 pw = pwd.getpwnam("cowrie")
@@ -45,6 +48,10 @@ config = re.sub(
 )
 open("/cowrie/cowrie-git/etc/cowrie.cfg", "w").write(config)
 os.chown("/cowrie/cowrie-git/etc/cowrie.cfg", pw.pw_uid, pw.pw_gid)
+
+cfg = configparser.ConfigParser(interpolation=None)
+cfg.read_string(config)
+persona.write(cfg["honeypot"]["hostname"], cfg["shell"]["filesystem"])
 
 # Drop to the cowrie user
 os.setgroups([pw.pw_gid])

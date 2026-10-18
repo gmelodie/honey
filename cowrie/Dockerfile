@@ -3,5 +3,5 @@ USER root
 RUN ["/cowrie/cowrie-env/bin/python3", "-c", "import psycopg2"]
 COPY postgresql_patch.py /cowrie/cowrie-git/src/cowrie/output/postgresql.py
 COPY userdb.txt /cowrie/cowrie-git/etc/userdb.txt
-COPY entrypoint.py /entrypoint.py
+COPY entrypoint.py persona.py /
 ENTRYPOINT ["/cowrie/cowrie-env/bin/python3", "/entrypoint.py"]

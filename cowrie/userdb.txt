@@ -1,5 +1,8 @@
 # username:uid:password
-# '*' accepts any password for that username
+# '*' accepts any password for that username; '!' rejects, /re/ is a regex
+# Rejecting probe passwords keeps scanners from seeing an accept-anything box.
+*:x:!/honeypot|cowrie/i
+*:x:!/^.{20,}$/
 root:0:*
 admin:0:*
 ubuntu:0:*

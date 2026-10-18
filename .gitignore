@@ -2,3 +2,4 @@
 cowrie/var/
 wordlists/
 /target
+__pycache__/
